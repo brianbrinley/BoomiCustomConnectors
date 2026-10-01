@@ -1,0 +1,52 @@
+name: JEV Connector
+
+on:
+  push:
+    paths:
+      - "jev-connector/**"
+      - ".github/workflows/jev-connector.yml"
+    tags:
+      - "jev-connector-v*"
+  pull_request:
+    paths:
+      - "jev-connector/**"
+      - ".github/workflows/jev-connector.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jev-connector
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build and test
+        run: mvn -B clean verify
+
+      - name: Upload connector archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: jev-connector-car
+          path: |
+            jev-connector/target/jev-connector-*-car.zip
+            jev-connector/src/main/resources/connector-descriptor.xml
+          if-no-files-found: error
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/jev-connector-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            jev-connector/target/jev-connector-*-car.zip
+            jev-connector/src/main/resources/connector-descriptor.xml

@@ -25,6 +25,13 @@ Outputs:
 
 The bytecode targets Java 11, so it runs on any current Boomi runtime.
 
+### Build on GitHub (no local setup)
+
+The workflow in `.github/workflows/jev-connector.yml` builds and tests on every push or PR that touches `jev-connector/`. You can also run it by hand from **Actions → JEV Connector → Run workflow**.
+
+- **Download:** open the run, then under **Artifacts** download `jev-connector-car`. It holds the CAR and the descriptor.
+- **Release:** push a tag such as `jev-connector-v1.0.0` and the same files are attached to a GitHub Release.
+
 ## Deploy to Boomi
 
 1. **Settings → Account Information and Setup → Publisher**: fill in publisher details (one-time setup).
