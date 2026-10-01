@@ -71,7 +71,7 @@ All of these are ordinary connection fields, so they can be set per environment 
 
 \* Per-document values let one process run different question sets. Any of these works; the first one set wins:
 
-1. **Set Properties → Connectors → JEV → Question Set / Model / Confidence Threshold** (connector document properties).
+1. **Set Properties → Connectors → JEV → JEV Question Set / JEV Model / JEV Confidence Threshold** (connector document properties `jevQuestionSet`, `jevModel`, `jevConfidenceThreshold`).
 2. A **dynamic document property** named `questionSet`, `model` or `confidenceThreshold` (case-insensitive).
 3. The connector shape's **Dynamic Operation Properties** tab.
 
@@ -148,7 +148,7 @@ Every input document produces exactly one result, so a single bad document never
 | Status | Code | When |
 |---|---|---|
 | Success | `200` | JEV answered; message is `DECIDED` / `NEEDS_REVIEW` |
-| Application Error | `INVALID_INPUT` | Binary/oversized/empty document, bad Question Set, bad threshold |
+| Application Error | `INVALID_INPUT` | Binary/oversized/empty document, bad Question Set, bad threshold. A missing Question Set error ends with `[Found: …]`, showing what each source held. |
 | Application Error | HTTP status (e.g. `401`, `422`, `429`) | JEV returned an error; JEV's body is the payload |
 | Application Error | `CONNECTION_ERROR` | JEV unreachable after retries |
 | Application Error | `INVALID_RESPONSE` | JEV returned non-JSON |

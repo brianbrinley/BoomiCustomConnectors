@@ -28,6 +28,11 @@ public final class QuestionSet {
     public static final String TYPE_SCORE = "score";
     public static final String TYPE_NOUL = "noul";
 
+    public static final String REQUIRED_MESSAGE = "Question Set is required in Document Review mode. Set it on the "
+            + "operation, on the connector shape's Dynamic Operation Properties tab, as a JEV connector document "
+            + "property (Set Properties > Connectors > JEV > JEV Question Set), or as a dynamic document property "
+            + "named 'questionSet'";
+
     /** JEV accepts 2 to 10 ordered levels for a score question. */
     static final int MIN_SCORE_LEVELS = 2;
     static final int MAX_SCORE_LEVELS = 10;
@@ -44,9 +49,7 @@ public final class QuestionSet {
 
     public static QuestionSet parse(String json) throws InvalidInputException {
         if (json == null || json.trim().isEmpty()) {
-            throw new InvalidInputException("Question Set is required in Document Review mode. Set it on the operation, "
-                    + "on the connector shape's Dynamic Operation Properties tab, as a JEV connector document property "
-                    + "(Set Properties > Connectors > JEV > Question Set), or as a dynamic document property named 'questionSet'");
+            throw new InvalidInputException(REQUIRED_MESSAGE);
         }
         JsonNode node;
         try {

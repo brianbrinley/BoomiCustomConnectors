@@ -88,6 +88,10 @@ public class JevReviewOperation extends BaseUpdateOperation {
             jevRequest = raw.getRequest();
             questions = raw.getQuestions();
         } else {
+            if (config.getQuestionSetJson() == null || config.getQuestionSetJson().trim().isEmpty()) {
+                throw new InvalidInputException(QuestionSet.REQUIRED_MESSAGE + " [Found: "
+                        + config.getQuestionSetSources() + "]");
+            }
             questions = QuestionSet.parse(config.getQuestionSetJson());
             jevRequest = RequestBuilder.forReview(text, config.getStateFormat(), config.getStateKey(), questions,
                     config.getModel());

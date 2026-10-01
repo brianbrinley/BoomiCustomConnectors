@@ -212,7 +212,7 @@ public class JevConnectorTest {
         op.remove(JevConstants.QUESTION_SET);
 
         SimpleOperationResult r = executeWithProperties(op, Collections.emptyMap(),
-                Collections.singletonMap(JevConstants.QUESTION_SET, SPAM_QUESTIONS));
+                Collections.singletonMap(JevConstants.DOC_PROP_QUESTION_SET, SPAM_QUESTIONS));
         assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
         assertTrue(MAPPER.readTree(server.getRequests().get(0).body).path("questions").has("spam"));
     }
@@ -224,7 +224,7 @@ public class JevConnectorTest {
                 "{\"other\":{\"type\":\"noul\",\"instructions\":\"Other?\"}}");
 
         SimpleOperationResult r = executeWithProperties(reviewOperation(), ddps,
-                Collections.singletonMap(JevConstants.QUESTION_SET, SPAM_QUESTIONS));
+                Collections.singletonMap(JevConstants.DOC_PROP_QUESTION_SET, SPAM_QUESTIONS));
         assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
         JsonNode questions = MAPPER.readTree(server.getRequests().get(0).body).path("questions");
         assertTrue(questions.has("spam"));
@@ -239,6 +239,35 @@ public class JevConnectorTest {
         assertEquals(OperationStatus.APPLICATION_ERROR, r.getStatus());
         assertTrue(r.getMessage(), r.getMessage().contains("Dynamic Operation Properties"));
         assertTrue(r.getMessage(), r.getMessage().contains("questionSet"));
+        assertTrue(r.getMessage(), r.getMessage().contains("operation field: not set"));
+        assertTrue(r.getMessage(), r.getMessage().contains("dynamic document properties present: none"));
+    }
+
+    @Test
+    public void unsetConnectorDocumentPropertyDoesNotHideOperationQuestionSet() throws Exception {
+        // Boomi may deliver declared-but-unset connector document properties as empty strings
+        server.enqueue(200, JevTestData.RESPONSE);
+        Map<String, String> connectorProps = new HashMap<>();
+        connectorProps.put(JevConstants.DOC_PROP_QUESTION_SET, "");
+        connectorProps.put(JevConstants.DOC_PROP_MODEL, "");
+        connectorProps.put(JevConstants.DOC_PROP_CONFIDENCE_THRESHOLD, "");
+        Map<String, String> ddps = Collections.singletonMap("someOtherProperty", "x");
+
+        SimpleOperationResult r = executeWithProperties(reviewOperation(), ddps, connectorProps);
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        JsonNode sent = MAPPER.readTree(server.getRequests().get(0).body);
+        assertTrue(sent.path("questions").has("department"));
+        assertEquals("jev-latest", sent.path("model").asText());
+    }
+
+    @Test
+    public void missingQuestionSetErrorListsDocumentPropertyNames() {
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+        SimpleOperationResult r = executeWithProperties(op, Collections.singletonMap("DDP_QUESTIONS", "{}"),
+                Collections.emptyMap());
+        assertEquals(OperationStatus.APPLICATION_ERROR, r.getStatus());
+        assertTrue(r.getMessage(), r.getMessage().contains("[DDP_QUESTIONS]"));
     }
 
     @Test
