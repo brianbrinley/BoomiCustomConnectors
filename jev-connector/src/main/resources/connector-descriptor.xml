@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenericConnectorDescriptor requireConnectionForBrowse="false">
+    <description>Send text-based documents to the JEV decision API and receive structured, confidence-gated results.</description>
+
+    <!-- ===================== Connection ===================== -->
+    <field id="baseUrl" label="Base URL" type="string">
+        <helpText>Root URL of the JEV API, without a trailing path. Example: https://api.typesafe.ai</helpText>
+        <defaultValue>https://api.typesafe.ai</defaultValue>
+    </field>
+    <field id="endpointPath" label="Decision Endpoint Path" type="string">
+        <helpText>Path of the decision endpoint, appended to the Base URL.</helpText>
+        <defaultValue>/v1/systemone</defaultValue>
+    </field>
+    <field id="apiKey" label="API Key" type="password">
+        <helpText>JEV API key. Sent in the authentication header on every request.</helpText>
+    </field>
+    <field id="authHeaderName" label="Auth Header Name" type="string">
+        <helpText>HTTP header that carries the API key.</helpText>
+        <defaultValue>Authorization</defaultValue>
+    </field>
+    <field id="authScheme" label="Auth Scheme" type="string">
+        <helpText>Prefix placed before the API key in the auth header (for example "Bearer"). Leave blank to send the raw key.</helpText>
+        <defaultValue>Bearer</defaultValue>
+    </field>
+    <field id="defaultModel" label="Default Model" type="string">
+        <helpText>Model used when the operation does not specify one.</helpText>
+        <defaultValue>jev-latest</defaultValue>
+    </field>
+    <field id="connectTimeoutMs" label="Connect Timeout (ms)" type="integer">
+        <defaultValue>10000</defaultValue>
+    </field>
+    <field id="readTimeoutMs" label="Read Timeout (ms)" type="integer">
+        <defaultValue>60000</defaultValue>
+    </field>
+    <field id="maxRetries" label="Max Retries" type="integer">
+        <helpText>Retries for rate limiting (429), server errors (502/503/504) and network failures. Uses exponential backoff and honours Retry-After.</helpText>
+        <defaultValue>2</defaultValue>
+    </field>
+
+    <testConnection method="CUSTOM"/>
+
+    <!-- ===================== Operation ===================== -->
+    <operation types="EXECUTE" customTypeId="REVIEW" customTypeLabel="Review Document" supportsBrowse="true">
+        <field id="requestMode" label="Request Mode" type="string">
+            <helpText>Document Review: the input document becomes the JEV "state" and the Question Set below is applied. Raw Request: the input document is already a complete JEV request body.</helpText>
+            <defaultValue>DOCUMENT_REVIEW</defaultValue>
+            <allowedValue label="Document Review">
+                <value>DOCUMENT_REVIEW</value>
+            </allowedValue>
+            <allowedValue label="Raw Request">
+                <value>RAW_REQUEST</value>
+            </allowedValue>
+        </field>
+        <field id="questionSet" label="Question Set (JSON)" type="string" displayType="textarea" overrideable="true">
+            <helpText>JSON object of questions keyed by ID. Each question needs "type" (choice, score or noul) and "instructions"; choice questions also need "criteria" (option ID to description). Required in Document Review mode.</helpText>
+            <visibilityCondition>
+                <valueCondition fieldId="requestMode">
+                    <value>DOCUMENT_REVIEW</value>
+                </valueCondition>
+            </visibilityCondition>
+        </field>
+        <field id="model" label="Model" type="string" overrideable="true">
+            <helpText>Overrides the connection's Default Model. Leave blank to use the default.</helpText>
+        </field>
+        <field id="stateFormat" label="Document Format" type="string">
+            <helpText>How the input document is sent as state. Auto: valid JSON is sent as JSON, anything else as text. JSON: the document must be valid JSON. Text: always sent as a string.</helpText>
+            <defaultValue>AUTO</defaultValue>
+            <allowedValue label="Auto-detect">
+                <value>AUTO</value>
+            </allowedValue>
+            <allowedValue label="JSON">
+                <value>JSON</value>
+            </allowedValue>
+            <allowedValue label="Text">
+                <value>TEXT</value>
+            </allowedValue>
+            <visibilityCondition>
+                <valueCondition fieldId="requestMode">
+                    <value>DOCUMENT_REVIEW</value>
+                </valueCondition>
+            </visibilityCondition>
+        </field>
+        <field id="stateKey" label="State Wrapper Key" type="string">
+            <helpText>Optional. When set, the document is wrapped as {"&lt;key&gt;": document} before it is sent as state.</helpText>
+            <visibilityCondition>
+                <valueCondition fieldId="requestMode">
+                    <value>DOCUMENT_REVIEW</value>
+                </valueCondition>
+            </visibilityCondition>
+        </field>
+        <field id="confidenceThreshold" label="Confidence Threshold" type="string" overrideable="true">
+            <helpText>Number between 0 and 1. Any answer below it marks the document NEEDS_REVIEW instead of DECIDED. Leave blank to disable gating.</helpText>
+            <defaultValue>0.8</defaultValue>
+        </field>
+        <field id="includeRawResponse" label="Include Raw JEV Response" type="boolean">
+            <helpText>Adds the unmodified JEV response under "raw" in the output document.</helpText>
+            <defaultValue>false</defaultValue>
+        </field>
+        <field id="maxDocumentSizeKb" label="Max Document Size (KB)" type="integer">
+            <helpText>Documents larger than this are rejected before calling JEV.</helpText>
+            <defaultValue>1024</defaultValue>
+        </field>
+    </operation>
+</GenericConnectorDescriptor>
