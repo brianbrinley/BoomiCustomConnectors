@@ -58,7 +58,7 @@ public class JevReviewOperation extends BaseUpdateOperation {
 
         for (ObjectData document : request) {
             try {
-                process(document, baseConfig.withOverrides(document.getDynamicOperationProperties()), client, response);
+                process(document, baseConfig.withOverrides(document), client, response);
             } catch (InvalidInputException e) {
                 document.getLogger().log(Level.WARNING, "Document rejected: {0}", e.getMessage());
                 response.addEmptyResult(document, OperationStatus.APPLICATION_ERROR, INVALID_INPUT, e.getMessage());

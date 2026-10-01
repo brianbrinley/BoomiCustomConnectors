@@ -2,11 +2,14 @@ package com.boomi.custom.jev.review;
 
 import com.boomi.connector.api.DynamicPropertyMap;
 import com.boomi.connector.api.PropertyMap;
+import com.boomi.connector.api.TrackedData;
 import com.boomi.custom.jev.JevConstants;
+
+import java.util.Map;
 
 /**
  * Operation settings for one document: the operation's fields, with any per-document overrides applied
- * (fields marked {@code overrideable} in the descriptor arrive as dynamic operation properties).
+ * (see {@link #withOverrides(TrackedData)}).
  */
 public final class ReviewConfig {
 
@@ -45,14 +48,23 @@ public final class ReviewConfig {
                 maxKb == null ? 0L : maxKb * 1024L);
     }
 
-    /** Applies per-document overrides of the overrideable fields. */
-    public ReviewConfig withOverrides(DynamicPropertyMap overrides) {
-        if (overrides == null) {
+    /**
+     * Applies per-document values of the overrideable fields. Boomi can deliver them three ways; the first
+     * non-blank value wins:
+     * <ol>
+     *   <li>JEV connector document property (Set Properties shape, Connectors &gt; JEV)</li>
+     *   <li>Dynamic document property whose name matches the field ID, ignoring case
+     *       (e.g. {@code questionSet}, {@code model}, {@code confidenceThreshold})</li>
+     *   <li>Dynamic Operation Properties tab on the connector shape</li>
+     * </ol>
+     */
+    public ReviewConfig withOverrides(TrackedData document) {
+        if (document == null) {
             return this;
         }
-        String questions = overrides.getProperty(JevConstants.QUESTION_SET);
-        String overrideModel = overrides.getProperty(JevConstants.MODEL);
-        String threshold = overrides.getProperty(JevConstants.CONFIDENCE_THRESHOLD);
+        String questions = override(document, JevConstants.QUESTION_SET);
+        String overrideModel = override(document, JevConstants.MODEL);
+        String threshold = override(document, JevConstants.CONFIDENCE_THRESHOLD);
         if (isBlank(questions) && isBlank(overrideModel) && isBlank(threshold)) {
             return this;
         }
@@ -62,6 +74,34 @@ public final class ReviewConfig {
                 stateFormat, stateKey,
                 isBlank(threshold) ? thresholdValue : threshold,
                 includeRaw, maxDocumentBytes);
+    }
+
+    private static String override(TrackedData document, String fieldId) {
+        String value = document.getDynamicProperties().get(fieldId);
+        if (isBlank(value)) {
+            value = getIgnoreCase(document.getUserDefinedProperties(), fieldId);
+        }
+        if (isBlank(value)) {
+            DynamicPropertyMap operationProps = document.getDynamicOperationProperties();
+            value = operationProps == null ? null : operationProps.getProperty(fieldId);
+        }
+        return value;
+    }
+
+    private static String getIgnoreCase(Map<String, String> props, String key) {
+        if (props == null) {
+            return null;
+        }
+        String exact = props.get(key);
+        if (exact != null) {
+            return exact;
+        }
+        for (Map.Entry<String, String> e : props.entrySet()) {
+            if (key.equalsIgnoreCase(e.getKey())) {
+                return e.getValue();
+            }
+        }
+        return null;
     }
 
     private static boolean isBlank(String s) {

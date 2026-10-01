@@ -20,7 +20,7 @@ Outputs:
 
 | File | Purpose |
 |---|---|
-| `target/jev-connector-1.0.0-car.zip` | Connector archive (CAR): upload as the connector **archive** |
+| `target/jev-connector-<version>-car.zip` | Connector archive (CAR): upload as the connector **archive** |
 | `src/main/resources/connector-descriptor.xml` | Upload as the connector **descriptor** (it is also inside the CAR under `META-INF/`) |
 
 The bytecode targets Java 11, so it runs on any current Boomi runtime.
@@ -69,7 +69,11 @@ All of these are ordinary connection fields, so they can be set per environment 
 | Include Raw JEV Response | false | |
 | Max Document Size (KB) | 1024 | |
 
-\* Fields marked overrideable can be set per document with a **Set Properties** shape (Dynamic Operation Properties). This lets one process run different question sets.
+\* Per-document values let one process run different question sets. Any of these works; the first one set wins:
+
+1. **Set Properties → Connectors → JEV → Question Set / Model / Confidence Threshold** (connector document properties).
+2. A **dynamic document property** named `questionSet`, `model` or `confidenceThreshold` (case-insensitive).
+3. The connector shape's **Dynamic Operation Properties** tab.
 
 **Request modes**
 - **Document Review**: the input document becomes JEV `state` and the Question Set is attached.
@@ -95,10 +99,22 @@ Binary documents (containing NUL bytes or invalid UTF-8) are rejected before any
       "sales": "Pricing, upgrades, or new accounts"
     }
   },
-  "needs_human": { "type": "noul",  "instructions": "Does this request require human review?" },
-  "urgency":     { "type": "score", "instructions": "How urgent is this request?" }
+  "needs_human": { "type": "noul", "instructions": "Does this request require human review?" },
+  "urgency": {
+    "type": "score",
+    "instructions": "How urgent is this request?",
+    "criteria": ["Can wait a week or more", "Should be handled in a day or two", "Needs attention today"]
+  }
 }
 ```
+
+| Type | `criteria` | Answer |
+|---|---|---|
+| `choice` | **Object**: option ID → description | One option ID |
+| `noul` | none | Yes/no probability |
+| `score` | **Array** of 2–10 level descriptions, lowest first | Probability-weighted level index, e.g. `1.05` |
+
+JEV reads the descriptions before deciding, so write them the way you would brief a new hire. The connector checks these rules before calling JEV and reports any problem as `INVALID_INPUT`.
 
 ### Output document
 
@@ -110,7 +126,10 @@ Binary documents (containing NUL bytes or invalid UTF-8) are rejected before any
   "results": {
     "department":  { "type": "choice", "value": "billing", "confidence": 0.92, "passed": true,
                      "probabilities": { "billing": 0.94, "technical": 0.05, "sales": 0.01 } },
-    "needs_human": { "type": "noul", "value": true, "probability": 0.87, "confidence": 0.87, "passed": true }
+    "needs_human": { "type": "noul", "value": true, "probability": 0.87, "confidence": 0.87, "passed": true },
+    "urgency":     { "type": "score", "value": 1.05, "level": "Should be handled in a day or two", "confidence": 0.92,
+                     "passed": true, "probabilities": { "0": 0.0, "1": 0.95, "2": 0.05 },
+                     "legend": { "0": "Can wait a week or more", "1": "Should be handled in a day or two", "2": "Needs attention today" } }
   },
   "reviewReasons": [],
   "usage": { "input_tokens": 180, "output_tokens": 24 }
@@ -120,7 +139,7 @@ Binary documents (containing NUL bytes or invalid UTF-8) are rejected before any
 - `status` is `NEEDS_REVIEW` when any answer is below the threshold, missing, or has no selected option. `reviewReasons` says which and why.
 - **choice** confidence is JEV's `confidence`, falling back to the top probability.
 - **noul** `value` is `probability >= 0.5`; confidence is JEV's `confidence`, falling back to `max(p, 1-p)`.
-- **score** passes through JEV's value; it is gated only if JEV returns a `confidence`.
+- **score** `value` is JEV's probability-weighted level index (0 = first level). `level` is the label of the most likely level, which is handy for a Decision shape. Confidence is JEV's `confidence`, falling back to the top level probability.
 
 ### Document results
 

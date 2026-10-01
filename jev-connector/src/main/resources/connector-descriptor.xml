@@ -52,7 +52,7 @@
             </allowedValue>
         </field>
         <field id="questionSet" label="Question Set (JSON)" type="string" displayType="textarea" overrideable="true">
-            <helpText>JSON object of questions keyed by ID. Each question needs "type" (choice, score or noul) and "instructions"; choice questions also need "criteria" (option ID to description). Required in Document Review mode.</helpText>
+            <helpText>JSON object of questions keyed by ID. Each question needs "type" (choice, score or noul) and "instructions". Choice questions also need "criteria" as an object of option ID to description; score questions need "criteria" as an array of 2 to 10 level descriptions, lowest first. Required in Document Review mode (or supplied per document).</helpText>
             <visibilityCondition>
                 <valueCondition fieldId="requestMode">
                     <value>DOCUMENT_REVIEW</value>
@@ -101,4 +101,9 @@
             <defaultValue>1024</defaultValue>
         </field>
     </operation>
+
+    <!-- Per-document values, set with a Set Properties shape (Connectors > JEV). They take precedence over the operation. -->
+    <dynamicProperty id="questionSet" label="Question Set (JSON)" type="string"/>
+    <dynamicProperty id="model" label="Model" type="string"/>
+    <dynamicProperty id="confidenceThreshold" label="Confidence Threshold" type="string"/>
 </GenericConnectorDescriptor>

@@ -69,6 +69,17 @@ public final class OutputSchema {
                 typed(props.putObject("value"), "boolean");
                 typed(props.putObject("probability"), "number");
                 break;
+            case QuestionSet.TYPE_SCORE: {
+                typed(props.putObject("value"), "number");
+                typed(props.putObject("level"), "string");
+                ObjectNode probProps = typed(props.putObject("probabilities"), "object").putObject("properties");
+                ObjectNode legendProps = typed(props.putObject("legend"), "object").putObject("properties");
+                for (int i = 0; i < questions.scoreLevels(id); i++) {
+                    typed(probProps.putObject(String.valueOf(i)), "number");
+                    typed(legendProps.putObject(String.valueOf(i)), "string");
+                }
+                break;
+            }
             default:
                 typed(props.putObject("value"), "number");
                 break;

@@ -179,6 +179,68 @@ public class JevConnectorTest {
         assertTrue(payload(r).path("results").path("spam").has("value"));
     }
 
+    private static final String SPAM_QUESTIONS = "{\"spam\":{\"type\":\"noul\",\"instructions\":\"Is this spam?\"}}";
+    private static final String SPAM_RESPONSE = "{\"answers\":{\"spam\":{\"type\":\"noul\",\"noul\":0.02}}}";
+
+    private SimpleOperationResult executeWithProperties(Map<String, Object> op, Map<String, String> documentProps,
+            Map<String, String> connectorProps) {
+        tester.setOperationContext(OperationType.EXECUTE, connection(), op, JevConstants.OBJECT_TYPE_REVIEW, null);
+        SimpleTrackedData data = new SimpleTrackedData(1, doc("buy now!!!"), documentProps, connectorProps);
+        return tester.executeExecuteOperationWithTrackedData(Collections.singletonList(data)).get(0);
+    }
+
+    @Test
+    public void dynamicDocumentPropertySuppliesQuestionSet() throws Exception {
+        server.enqueue(200, SPAM_RESPONSE);
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+        Map<String, String> ddps = new HashMap<>();
+        ddps.put("QuestionSet", SPAM_QUESTIONS); // name match ignores case
+        ddps.put("MODEL", "jev-from-ddp");
+
+        SimpleOperationResult r = executeWithProperties(op, ddps, Collections.emptyMap());
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        JsonNode sent = MAPPER.readTree(server.getRequests().get(0).body);
+        assertTrue(sent.path("questions").has("spam"));
+        assertEquals("jev-from-ddp", sent.path("model").asText());
+    }
+
+    @Test
+    public void connectorDocumentPropertySuppliesQuestionSet() throws Exception {
+        server.enqueue(200, SPAM_RESPONSE);
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+
+        SimpleOperationResult r = executeWithProperties(op, Collections.emptyMap(),
+                Collections.singletonMap(JevConstants.QUESTION_SET, SPAM_QUESTIONS));
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        assertTrue(MAPPER.readTree(server.getRequests().get(0).body).path("questions").has("spam"));
+    }
+
+    @Test
+    public void connectorDocumentPropertyWinsOverDocumentPropertyAndOperation() throws Exception {
+        server.enqueue(200, SPAM_RESPONSE);
+        Map<String, String> ddps = Collections.singletonMap(JevConstants.QUESTION_SET,
+                "{\"other\":{\"type\":\"noul\",\"instructions\":\"Other?\"}}");
+
+        SimpleOperationResult r = executeWithProperties(reviewOperation(), ddps,
+                Collections.singletonMap(JevConstants.QUESTION_SET, SPAM_QUESTIONS));
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        JsonNode questions = MAPPER.readTree(server.getRequests().get(0).body).path("questions");
+        assertTrue(questions.has("spam"));
+        assertEquals(1, questions.size());
+    }
+
+    @Test
+    public void missingQuestionSetErrorExplainsWhereToSetIt() {
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+        SimpleOperationResult r = executeWithProperties(op, Collections.emptyMap(), Collections.emptyMap());
+        assertEquals(OperationStatus.APPLICATION_ERROR, r.getStatus());
+        assertTrue(r.getMessage(), r.getMessage().contains("Dynamic Operation Properties"));
+        assertTrue(r.getMessage(), r.getMessage().contains("questionSet"));
+    }
+
     @Test
     public void browseGeneratesTypedResponseProfile() throws Exception {
         tester.setBrowseContext(OperationType.EXECUTE, connection(), reviewOperation());

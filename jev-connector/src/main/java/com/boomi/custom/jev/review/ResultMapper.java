@@ -19,7 +19,8 @@ import java.util.Map;
  *   "results": {
  *     "department":  {"type": "choice", "value": "billing", "confidence": 0.92, "passed": true, "probabilities": {...}},
  *     "needs_human": {"type": "noul",   "value": true, "probability": 0.87, "confidence": 0.87, "passed": true},
- *     "urgency":     {"type": "score",  "value": 0.7, "passed": true}
+ *     "urgency":     {"type": "score",  "value": 1.05, "level": "Frustrated", "confidence": 0.92, "passed": true,
+ *                     "probabilities": {"0": 0.0, "1": 0.95, "2": 0.05}, "legend": {"0": "Calm", ...}}
  *   },
  *   "reviewReasons": [],
  *   "usage": {...},
@@ -138,13 +139,43 @@ public final class ResultMapper {
                 }
                 break;
             }
-            case QuestionSet.TYPE_SCORE:
+            case QuestionSet.TYPE_SCORE: {
+                // score = probability-weighted level index (e.g. 1.05 between levels 1 and 2)
+                Double score = number(answer.get("score"));
+                if (score == null) {
+                    result.putNull("value");
+                    result.putNull("level");
+                    putConfidence(result, confidence);
+                    result.put("passed", false);
+                    reasons.add(id + ": no score returned");
+                    return result;
+                }
+                result.put("value", score);
+                JsonNode probabilities = answer.path("probabilities");
+                JsonNode legend = answer.path("legend");
+                String topLevel = argMax(probabilities);
+                if (topLevel != null && legend.path(topLevel).isTextual()) {
+                    result.put("level", legend.path(topLevel).asText());
+                } else {
+                    result.putNull("level");
+                }
+                if (confidence == null && probabilities.isObject()) {
+                    confidence = maxProbability(probabilities);
+                }
+                if (probabilities.isObject()) {
+                    result.set("probabilities", probabilities.deepCopy());
+                }
+                if (legend.isObject()) {
+                    result.set("legend", legend.deepCopy());
+                }
+                break;
+            }
             default: {
-                JsonNode score = answer.has(type) ? answer.get(type) : answer.path("value");
-                if (score.isMissingNode()) {
+                JsonNode value = answer.has(type) ? answer.get(type) : answer.path("value");
+                if (value.isMissingNode()) {
                     result.putNull("value");
                 } else {
-                    result.set("value", score.deepCopy());
+                    result.set("value", value.deepCopy());
                 }
                 break;
             }
@@ -175,6 +206,21 @@ public final class ResultMapper {
             }
         }
         return max;
+    }
+
+    /** Key of the highest probability, or null when there are none. */
+    private static String argMax(JsonNode probabilities) {
+        String best = null;
+        double bestValue = Double.NEGATIVE_INFINITY;
+        Iterator<Map.Entry<String, JsonNode>> it = probabilities.fields();
+        while (it.hasNext()) {
+            Map.Entry<String, JsonNode> e = it.next();
+            if (e.getValue().isNumber() && e.getValue().asDouble() > bestValue) {
+                bestValue = e.getValue().asDouble();
+                best = e.getKey();
+            }
+        }
+        return best;
     }
 
     private static Double number(JsonNode node) {
