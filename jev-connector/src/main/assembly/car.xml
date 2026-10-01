@@ -1,0 +1,32 @@
+<!-- Builds the Boomi connector archive (.car): descriptors in META-INF, jars in lib/ -->
+<assembly>
+    <id>car</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <fileSets>
+        <fileSet>
+            <directory>${project.build.outputDirectory}</directory>
+            <outputDirectory>META-INF</outputDirectory>
+            <includes>
+                <include>connector-config.xml</include>
+                <include>connector-descriptor.xml</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>lib</outputDirectory>
+            <useProjectArtifact>true</useProjectArtifact>
+            <scope>runtime</scope>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <!-- Supplied by the Boomi runtime; arrive transitively via connector-sdk-util -->
+            <excludes>
+                <exclude>com.boomi.connsdk:connector-sdk-api</exclude>
+                <exclude>javax.xml.bind:jaxb-api</exclude>
+                <exclude>javax.activation:javax.activation-api</exclude>
+            </excludes>
+        </dependencySet>
+    </dependencySets>
+</assembly>

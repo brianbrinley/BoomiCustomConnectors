@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenericConnector sdkApiVersion="${boomi.sdk.version}">
+    <connectorClassName>com.boomi.custom.jev.JevConnector</connectorClassName>
+</GenericConnector>

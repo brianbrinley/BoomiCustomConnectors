@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.boomi.custom</groupId>
+  <artifactId>jev-connector</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
+  <name>Boomi JEV Connector</name>
+  <description>Boomi custom connector that sends documents to the JEV decision API and returns structured, gated results.</description>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.release>11</maven.compiler.release>
+    <boomi.sdk.version>2.31.0</boomi.sdk.version>
+    <jackson.version>2.17.2</jackson.version>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>boomisdk</id>
+      <name>Boomi Connector SDK</name>
+      <url>https://boomisdk.s3.amazonaws.com/releases</url>
+    </repository>
+  </repositories>
+
+  <dependencies>
+    <!-- Provided by the Boomi runtime; never bundle it in the .car -->
+    <dependency>
+      <groupId>com.boomi.connsdk</groupId>
+      <artifactId>connector-sdk-api</artifactId>
+      <version>${boomi.sdk.version}</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <!-- Bundled into the .car lib/ folder (matches the Boomi SDK archetype) -->
+    <dependency>
+      <groupId>com.boomi.connsdk</groupId>
+      <artifactId>connector-sdk-util</artifactId>
+      <version>${boomi.sdk.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>com.boomi.connsdk</groupId>
+      <artifactId>connector-sdk-test-util</artifactId>
+      <version>${boomi.sdk.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.2</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <!-- Filtered so connector-config.xml picks up the SDK version -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>true</filtering>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <systemPropertyVariables>
+            <!-- connector-sdk-test-util pulls jaxb-impl 2.1.x, whose bytecode optimizer fails on Java 17+ -->
+            <com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize>true</com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>3.7.1</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/car.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-car</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

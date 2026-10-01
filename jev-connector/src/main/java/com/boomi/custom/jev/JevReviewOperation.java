@@ -1,0 +1,122 @@
+package com.boomi.custom.jev;
+
+import com.boomi.connector.api.ObjectData;
+import com.boomi.connector.api.OperationContext;
+import com.boomi.connector.api.OperationResponse;
+import com.boomi.connector.api.OperationStatus;
+import com.boomi.connector.api.UpdateRequest;
+import com.boomi.connector.util.BaseUpdateOperation;
+import com.boomi.connector.util.ResponseUtil;
+import com.boomi.custom.jev.client.JevClient;
+import com.boomi.custom.jev.client.JevHttpResponse;
+import com.boomi.custom.jev.review.DocumentReader;
+import com.boomi.custom.jev.review.InvalidInputException;
+import com.boomi.custom.jev.review.QuestionSet;
+import com.boomi.custom.jev.review.RequestBuilder;
+import com.boomi.custom.jev.review.RequestMode;
+import com.boomi.custom.jev.review.ResultMapper;
+import com.boomi.custom.jev.review.ReviewConfig;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+
+/**
+ * EXECUTE "Review Document": one JEV call per input document, one structured output document per input.
+ *
+ * <ul>
+ *   <li>SUCCESS (code 200..299) with the mapped result; the message is DECIDED or NEEDS_REVIEW.</li>
+ *   <li>APPLICATION_ERROR "INVALID_INPUT" when the document or configuration is rejected before calling JEV.</li>
+ *   <li>APPLICATION_ERROR with the HTTP status when JEV returns an error (body is passed through).</li>
+ *   <li>APPLICATION_ERROR "CONNECTION_ERROR" when JEV cannot be reached after retries.</li>
+ * </ul>
+ */
+public class JevReviewOperation extends BaseUpdateOperation {
+
+    static final String INVALID_INPUT = "INVALID_INPUT";
+    static final String CONNECTION_ERROR = "CONNECTION_ERROR";
+    static final String INVALID_RESPONSE = "INVALID_RESPONSE";
+
+    public JevReviewOperation(JevConnection<OperationContext> connection) {
+        super(connection);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public JevConnection<OperationContext> getConnection() {
+        return (JevConnection<OperationContext>) super.getConnection();
+    }
+
+    @Override
+    protected void executeUpdate(UpdateRequest request, OperationResponse response) {
+        JevClient client = getConnection().createClient();
+        ReviewConfig baseConfig = ReviewConfig.from(getContext().getOperationProperties(),
+                client.getSettings().getDefaultModel());
+
+        for (ObjectData document : request) {
+            try {
+                process(document, baseConfig.withOverrides(document.getDynamicOperationProperties()), client, response);
+            } catch (InvalidInputException e) {
+                document.getLogger().log(Level.WARNING, "Document rejected: {0}", e.getMessage());
+                response.addEmptyResult(document, OperationStatus.APPLICATION_ERROR, INVALID_INPUT, e.getMessage());
+            } catch (IOException e) {
+                document.getLogger().log(Level.WARNING, "JEV call failed", e);
+                response.addEmptyResult(document, OperationStatus.APPLICATION_ERROR, CONNECTION_ERROR,
+                        "Could not reach JEV: " + e);
+            } catch (RuntimeException e) {
+                document.getLogger().log(Level.SEVERE, "Unexpected error processing document", e);
+                ResponseUtil.addExceptionFailure(response, document, e);
+            }
+        }
+    }
+
+    private void process(ObjectData document, ReviewConfig config, JevClient client, OperationResponse response)
+            throws InvalidInputException, IOException {
+        Double threshold = config.getThreshold();
+        String text;
+        try (InputStream in = document.getData()) {
+            text = DocumentReader.readText(in, config.getMaxDocumentBytes());
+        }
+
+        ObjectNode jevRequest;
+        QuestionSet questions;
+        if (config.getMode() == RequestMode.RAW_REQUEST) {
+            RequestBuilder.RawRequest raw = RequestBuilder.fromRaw(text, config.getModel());
+            jevRequest = raw.getRequest();
+            questions = raw.getQuestions();
+        } else {
+            questions = QuestionSet.parse(config.getQuestionSetJson());
+            jevRequest = RequestBuilder.forReview(text, config.getStateFormat(), config.getStateKey(), questions,
+                    config.getModel());
+        }
+
+        JevHttpResponse jevResponse = client.decide(jevRequest);
+        String code = String.valueOf(jevResponse.getStatusCode());
+        if (!jevResponse.isSuccess()) {
+            response.addResult(document, OperationStatus.APPLICATION_ERROR, code, jevResponse.errorMessage(),
+                    ResponseUtil.toPayload(jevResponse.getBody(), StandardCharsets.UTF_8));
+            return;
+        }
+
+        JsonNode body;
+        try {
+            body = jevResponse.bodyAsJson();
+        } catch (IOException e) {
+            response.addResult(document, OperationStatus.APPLICATION_ERROR, INVALID_RESPONSE,
+                    "JEV returned a non-JSON response", ResponseUtil.toPayload(jevResponse.getBody(), StandardCharsets.UTF_8));
+            return;
+        }
+        if (body == null || !body.isObject()) {
+            response.addResult(document, OperationStatus.APPLICATION_ERROR, INVALID_RESPONSE,
+                    "JEV response is not a JSON object", ResponseUtil.toPayload(jevResponse.getBody(), StandardCharsets.UTF_8));
+            return;
+        }
+
+        ObjectNode result = ResultMapper.map(body, questions, threshold, config.isIncludeRaw());
+        response.addResult(document, OperationStatus.SUCCESS, code, result.path("status").asText(),
+                ResponseUtil.toPayload(result.toString(), StandardCharsets.UTF_8));
+    }
+}
