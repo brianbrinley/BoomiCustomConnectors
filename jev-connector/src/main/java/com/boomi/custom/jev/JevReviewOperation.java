@@ -4,8 +4,11 @@ import com.boomi.connector.api.ObjectData;
 import com.boomi.connector.api.OperationContext;
 import com.boomi.connector.api.OperationResponse;
 import com.boomi.connector.api.OperationStatus;
+import com.boomi.connector.api.Payload;
+import com.boomi.connector.api.PayloadMetadata;
 import com.boomi.connector.api.UpdateRequest;
 import com.boomi.connector.util.BaseUpdateOperation;
+import com.boomi.connector.util.PayloadUtil;
 import com.boomi.connector.util.ResponseUtil;
 import com.boomi.custom.jev.client.JevClient;
 import com.boomi.custom.jev.client.JevHttpResponse;
@@ -15,6 +18,7 @@ import com.boomi.custom.jev.review.QuestionSet;
 import com.boomi.custom.jev.review.RequestBuilder;
 import com.boomi.custom.jev.review.RequestMode;
 import com.boomi.custom.jev.review.ResultMapper;
+import com.boomi.custom.jev.review.ResultProperties;
 import com.boomi.custom.jev.review.ReviewConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -97,11 +101,20 @@ public class JevReviewOperation extends BaseUpdateOperation {
                     config.getModel());
         }
 
+        ReviewConfig.PropertyFlags flags = config.getPropertyFlags();
         JevHttpResponse jevResponse = client.decide(jevRequest);
         String code = String.valueOf(jevResponse.getStatusCode());
         if (!jevResponse.isSuccess()) {
+            PayloadMetadata metadata = null;
+            if (flags.any()) {
+                metadata = response.createMetadata();
+                ResultProperties.applyError(metadata, code, flags.documentProperties(), flags.trackedProperties());
+                if (flags.keepOriginalDocument()) {
+                    ResultProperties.applyOriginalDocument(metadata, text);
+                }
+            }
             response.addResult(document, OperationStatus.APPLICATION_ERROR, code, jevResponse.errorMessage(),
-                    ResponseUtil.toPayload(jevResponse.getBody(), StandardCharsets.UTF_8));
+                    payload(jevResponse.getBody(), metadata));
             return;
         }
 
@@ -120,7 +133,21 @@ public class JevReviewOperation extends BaseUpdateOperation {
         }
 
         ObjectNode result = ResultMapper.map(body, questions, threshold, config.isIncludeRaw());
+        PayloadMetadata metadata = null;
+        if (flags.any()) {
+            metadata = response.createMetadata();
+            ResultProperties.apply(metadata, result, flags.documentProperties(), flags.trackedProperties());
+            if (flags.keepOriginalDocument()) {
+                ResultProperties.applyOriginalDocument(metadata, text);
+            }
+        }
         response.addResult(document, OperationStatus.SUCCESS, code, result.path("status").asText(),
-                ResponseUtil.toPayload(result.toString(), StandardCharsets.UTF_8));
+                payload(result.toString(), metadata));
+    }
+
+    private static Payload payload(String content, PayloadMetadata metadata) {
+        return metadata == null
+                ? ResponseUtil.toPayload(content, StandardCharsets.UTF_8)
+                : PayloadUtil.toPayload(content, StandardCharsets.UTF_8, metadata);
     }
 }

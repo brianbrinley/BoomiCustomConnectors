@@ -25,6 +25,9 @@ public final class JevConstants {
     public static final String CONFIDENCE_THRESHOLD = "confidenceThreshold";
     public static final String INCLUDE_RAW_RESPONSE = "includeRawResponse";
     public static final String MAX_DOCUMENT_SIZE_KB = "maxDocumentSizeKb";
+    public static final String SET_DOCUMENT_PROPERTIES = "setDocumentProperties";
+    public static final String KEEP_ORIGINAL_DOCUMENT = "keepOriginalDocument";
+    public static final String SET_TRACKED_PROPERTIES = "setTrackedProperties";
 
     // Connector document properties (Set Properties > Connectors > JEV). Deliberately distinct from the operation
     // field IDs so an unset document property can never shadow the operation's value.

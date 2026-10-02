@@ -100,6 +100,29 @@
             <helpText>Documents larger than this are rejected before calling JEV.</helpText>
             <defaultValue>1024</defaultValue>
         </field>
+        <field id="setDocumentProperties" label="Set Document Properties" type="boolean">
+            <helpText>Adds the result as dynamic document properties on each output document: jevStatus, jevModel, jevReviewReasons, jevInputTokens, jevOutputTokens, and per question jev_&lt;id&gt;, jev_&lt;id&gt;_confidence, jev_&lt;id&gt;_passed and jev_&lt;id&gt;_level (score). Use them in Decision, Route or Map shapes without a profile.</helpText>
+            <defaultValue>false</defaultValue>
+        </field>
+        <field id="keepOriginalDocument" label="Keep Original Document" type="boolean">
+            <helpText>Also stores the input document text in the dynamic document property jevOriginalDocument, because the output document replaces it.</helpText>
+            <defaultValue>false</defaultValue>
+            <visibilityCondition>
+                <valueCondition fieldId="setDocumentProperties">
+                    <value>true</value>
+                </valueCondition>
+            </visibilityCondition>
+        </field>
+        <field id="setTrackedProperties" label="Set Tracked Properties" type="boolean">
+            <helpText>Records JEV Status, Model, Summary, Review Reasons and token counts as tracked properties, so they appear in Process Reporting.</helpText>
+            <defaultValue>false</defaultValue>
+        </field>
+        <trackedProperty id="jevStatus" label="JEV Status"/>
+        <trackedProperty id="jevModel" label="JEV Model"/>
+        <trackedProperty id="jevSummary" label="JEV Summary"/>
+        <trackedProperty id="jevReviewReasons" label="JEV Review Reasons"/>
+        <trackedProperty id="jevInputTokens" label="JEV Input Tokens"/>
+        <trackedProperty id="jevOutputTokens" label="JEV Output Tokens"/>
     </operation>
 
     <!-- Per-document values, set with a Set Properties shape (Connectors > JEV). They take precedence over the operation. -->

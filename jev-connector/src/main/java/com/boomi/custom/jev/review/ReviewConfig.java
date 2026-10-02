@@ -22,17 +22,19 @@ public final class ReviewConfig {
     private final String thresholdValue;
     private final boolean includeRaw;
     private final long maxDocumentBytes;
+    private final PropertyFlags flags;
     private final String questionSetSources;
 
     private ReviewConfig(RequestMode mode, String questionSetJson, String model, StateFormat stateFormat,
-            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes) {
-        this(mode, questionSetJson, model, stateFormat, stateKey, thresholdValue, includeRaw, maxDocumentBytes,
+            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes, PropertyFlags flags) {
+        this(mode, questionSetJson, model, stateFormat, stateKey, thresholdValue, includeRaw, maxDocumentBytes, flags,
                 "operation field: " + describe(questionSetJson));
     }
 
     private ReviewConfig(RequestMode mode, String questionSetJson, String model, StateFormat stateFormat,
-            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes,
+            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes, PropertyFlags flags,
             String questionSetSources) {
+        this.flags = flags;
         this.questionSetSources = questionSetSources;
         this.mode = mode;
         this.questionSetJson = questionSetJson;
@@ -55,7 +57,15 @@ public final class ReviewConfig {
                 op.getProperty(JevConstants.STATE_KEY),
                 op.getProperty(JevConstants.CONFIDENCE_THRESHOLD),
                 Boolean.TRUE.equals(op.getBooleanProperty(JevConstants.INCLUDE_RAW_RESPONSE, Boolean.FALSE)),
-                maxKb == null ? 0L : maxKb * 1024L);
+                maxKb == null ? 0L : maxKb * 1024L,
+                new PropertyFlags(
+                        flag(op, JevConstants.SET_DOCUMENT_PROPERTIES),
+                        flag(op, JevConstants.KEEP_ORIGINAL_DOCUMENT),
+                        flag(op, JevConstants.SET_TRACKED_PROPERTIES)));
+    }
+
+    private static boolean flag(PropertyMap op, String id) {
+        return Boolean.TRUE.equals(op.getBooleanProperty(id, Boolean.FALSE));
     }
 
     /**
@@ -81,7 +91,7 @@ public final class ReviewConfig {
                 isBlank(overrideModel) ? model : overrideModel.trim(),
                 stateFormat, stateKey,
                 isBlank(threshold) ? thresholdValue : threshold,
-                includeRaw, maxDocumentBytes,
+                includeRaw, maxDocumentBytes, flags,
                 describeQuestionSetSources(document));
     }
 
@@ -176,5 +186,39 @@ public final class ReviewConfig {
 
     public long getMaxDocumentBytes() {
         return maxDocumentBytes;
+    }
+
+    public PropertyFlags getPropertyFlags() {
+        return flags;
+    }
+
+    /** Feature flags controlling which Boomi properties the connector sets on output documents. */
+    public static final class PropertyFlags {
+        private final boolean documentProperties;
+        private final boolean keepOriginalDocument;
+        private final boolean trackedProperties;
+
+        public PropertyFlags(boolean documentProperties, boolean keepOriginalDocument, boolean trackedProperties) {
+            this.documentProperties = documentProperties;
+            // The original document is stored as a dynamic document property, so it needs that feature on
+            this.keepOriginalDocument = documentProperties && keepOriginalDocument;
+            this.trackedProperties = trackedProperties;
+        }
+
+        public boolean documentProperties() {
+            return documentProperties;
+        }
+
+        public boolean keepOriginalDocument() {
+            return keepOriginalDocument;
+        }
+
+        public boolean trackedProperties() {
+            return trackedProperties;
+        }
+
+        public boolean any() {
+            return documentProperties || trackedProperties;
+        }
     }
 }

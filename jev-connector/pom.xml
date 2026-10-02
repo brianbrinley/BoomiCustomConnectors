@@ -6,7 +6,7 @@
 
   <groupId>com.boomi.custom</groupId>
   <artifactId>jev-connector</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <packaging>jar</packaging>
   <name>Boomi JEV Connector</name>
   <description>Boomi custom connector that sends documents to the JEV decision API and returns structured, gated results.</description>
