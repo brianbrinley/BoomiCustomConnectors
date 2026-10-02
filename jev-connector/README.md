@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../brand/assets/jev-banner-night.png">
+  <img alt="JEV Connector: Valence, Boomi Custom Connectors" src="../brand/assets/jev-banner-day.png">
+</picture>
+
 # Boomi JEV Connector
 
 A Boomi custom connector that sends text-based documents to the [JEV](https://huggingface.co/blog/sora-2/jev-ai-api-tutorial-build-your-first-structured-de) decision API and returns a structured, confidence-gated result for each document.
@@ -5,6 +10,7 @@ A Boomi custom connector that sends text-based documents to the [JEV](https://hu
 You describe the decisions you want as a **Question Set**, for example "which team?", "does a human need to look at this?" and "how urgent?". The connector handles auth, request building, retries, response parsing and confidence gating. Your Boomi process only has to route on the answers.
 
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Josefin Sans, trebuchet ms, verdana, arial, sans-serif", "themeVariables": {"fontSize": "15px", "background": "#FBF6EE", "primaryColor": "#FBF6EE", "primaryTextColor": "#0B0B0B", "primaryBorderColor": "#9A7B3F", "lineColor": "#9A7B3F", "textColor": "#0B0B0B", "secondaryColor": "#9FDED6", "tertiaryColor": "#FBE7A1", "edgeLabelBackground": "#FBF6EE", "clusterBkg": "#FBF6EE", "clusterBorder": "#9A7B3F", "actorBkg": "#F7A8C4", "actorBorder": "#C2185B", "actorTextColor": "#0B0B0B", "actorLineColor": "#9A7B3F", "signalColor": "#0B0B0B", "signalTextColor": "#0B0B0B", "labelBoxBkgColor": "#FBE7A1", "labelBoxBorderColor": "#9A7B3F", "labelTextColor": "#0B0B0B", "loopTextColor": "#0B0B0B", "noteBkgColor": "#FBE7A1", "noteBorderColor": "#9A7B3F", "noteTextColor": "#0B0B0B", "activationBkgColor": "#9FDED6", "activationBorderColor": "#0F766E", "sequenceNumberColor": "#FBF6EE"}}}%%
 flowchart LR
     A["Any text document<br/>email, ticket, JSON, CSV, XML"] --> B["JEV connector<br/>Review Document"]
     Q["Question Set<br/>choice / noul / score"] -.-> B
@@ -14,6 +20,15 @@ flowchart LR
     R --> D{"status = DECIDED?"}
     D -->|yes| AUTO["Automate<br/>route, create ticket, reply"]
     D -->|no| HUMAN["Human review<br/>with reviewReasons"]
+    class B focus
+    class J external
+    class D decision
+    class HUMAN,Q highlight
+    classDef focus fill:#F7A8C4,stroke:#C2185B,stroke-width:2px,color:#0B0B0B
+    classDef decision fill:#9FDED6,stroke:#0F766E,stroke-width:2px,color:#0B0B0B
+    classDef highlight fill:#FBE7A1,stroke:#9A7B3F,stroke-width:1.5px,color:#0B0B0B
+    classDef external fill:#FFFFFF,stroke:#0F766E,stroke-width:1.5px,stroke-dasharray:5 3,color:#0B0B0B
+    classDef error fill:#FFFFFF,stroke:#D03B3B,stroke-width:2px,color:#0B0B0B
 ```
 
 **Contents:**
@@ -76,11 +91,18 @@ The bytecode targets Java 11, so it runs on any current Boomi runtime.
 **Upgrading to a new version**
 
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Josefin Sans, trebuchet ms, verdana, arial, sans-serif", "themeVariables": {"fontSize": "15px", "background": "#FBF6EE", "primaryColor": "#FBF6EE", "primaryTextColor": "#0B0B0B", "primaryBorderColor": "#9A7B3F", "lineColor": "#9A7B3F", "textColor": "#0B0B0B", "secondaryColor": "#9FDED6", "tertiaryColor": "#FBE7A1", "edgeLabelBackground": "#FBF6EE", "clusterBkg": "#FBF6EE", "clusterBorder": "#9A7B3F", "actorBkg": "#F7A8C4", "actorBorder": "#C2185B", "actorTextColor": "#0B0B0B", "actorLineColor": "#9A7B3F", "signalColor": "#0B0B0B", "signalTextColor": "#0B0B0B", "labelBoxBkgColor": "#FBE7A1", "labelBoxBorderColor": "#9A7B3F", "labelTextColor": "#0B0B0B", "loopTextColor": "#0B0B0B", "noteBkgColor": "#FBE7A1", "noteBorderColor": "#9A7B3F", "noteTextColor": "#0B0B0B", "activationBkgColor": "#9FDED6", "activationBorderColor": "#0F766E", "sequenceNumberColor": "#FBF6EE"}}}%%
 flowchart LR
     A["Bump version in pom.xml<br/>and build"] --> B["Add a new connector version:<br/>upload BOTH the CAR and the descriptor"]
     B --> C["Point the process at<br/>the new version"]
     C --> D["Re-open the operation<br/>and click Import"]
     D --> E["Test run"]
+    class B focus
+    classDef focus fill:#F7A8C4,stroke:#C2185B,stroke-width:2px,color:#0B0B0B
+    classDef decision fill:#9FDED6,stroke:#0F766E,stroke-width:2px,color:#0B0B0B
+    classDef highlight fill:#FBE7A1,stroke:#9A7B3F,stroke-width:1.5px,color:#0B0B0B
+    classDef external fill:#FFFFFF,stroke:#0F766E,stroke-width:1.5px,stroke-dasharray:5 3,color:#0B0B0B
+    classDef error fill:#FFFFFF,stroke:#D03B3B,stroke-width:2px,color:#0B0B0B
 ```
 
 - **Always upload both files.** New fields and properties live in the descriptor.
@@ -289,6 +311,7 @@ How to read it:
 There are three ways to act on a result. Use whichever suits each shape.
 
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Josefin Sans, trebuchet ms, verdana, arial, sans-serif", "themeVariables": {"fontSize": "15px", "background": "#FBF6EE", "primaryColor": "#FBF6EE", "primaryTextColor": "#0B0B0B", "primaryBorderColor": "#9A7B3F", "lineColor": "#9A7B3F", "textColor": "#0B0B0B", "secondaryColor": "#9FDED6", "tertiaryColor": "#FBE7A1", "edgeLabelBackground": "#FBF6EE", "clusterBkg": "#FBF6EE", "clusterBorder": "#9A7B3F", "actorBkg": "#F7A8C4", "actorBorder": "#C2185B", "actorTextColor": "#0B0B0B", "actorLineColor": "#9A7B3F", "signalColor": "#0B0B0B", "signalTextColor": "#0B0B0B", "labelBoxBkgColor": "#FBE7A1", "labelBoxBorderColor": "#9A7B3F", "labelTextColor": "#0B0B0B", "loopTextColor": "#0B0B0B", "noteBkgColor": "#FBE7A1", "noteBorderColor": "#9A7B3F", "noteTextColor": "#0B0B0B", "activationBkgColor": "#9FDED6", "activationBorderColor": "#0F766E", "sequenceNumberColor": "#FBF6EE"}}}%%
 flowchart TD
     IN["Incoming messages"] --> SP["Set Properties<br/>(optional per-document question set)"]
     SP --> JEV["JEV: Review Document"]
@@ -300,6 +323,15 @@ flowchart TD
     RT -->|technical| T["Technical queue"]
     RT -->|account| AC["Account queue"]
     RT -->|default| G["General queue"]
+    class JEV focus
+    class DEC,RT decision
+    class REV highlight
+    class ERR error
+    classDef focus fill:#F7A8C4,stroke:#C2185B,stroke-width:2px,color:#0B0B0B
+    classDef decision fill:#9FDED6,stroke:#0F766E,stroke-width:2px,color:#0B0B0B
+    classDef highlight fill:#FBE7A1,stroke:#9A7B3F,stroke-width:1.5px,color:#0B0B0B
+    classDef external fill:#FFFFFF,stroke:#0F766E,stroke-width:1.5px,stroke-dasharray:5 3,color:#0B0B0B
+    classDef error fill:#FFFFFF,stroke:#D03B3B,stroke-width:2px,color:#0B0B0B
 ```
 
 ### Option A: the response profile (recommended for maps)
@@ -359,6 +391,7 @@ Values longer than 1000 characters are cut off in tracking; the dynamic document
 One process can apply different question sets to different documents, e.g. per customer, channel or language. The connector checks these sources in order, and the first non-blank value wins:
 
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Josefin Sans, trebuchet ms, verdana, arial, sans-serif", "themeVariables": {"fontSize": "15px", "background": "#FBF6EE", "primaryColor": "#FBF6EE", "primaryTextColor": "#0B0B0B", "primaryBorderColor": "#9A7B3F", "lineColor": "#9A7B3F", "textColor": "#0B0B0B", "secondaryColor": "#9FDED6", "tertiaryColor": "#FBE7A1", "edgeLabelBackground": "#FBF6EE", "clusterBkg": "#FBF6EE", "clusterBorder": "#9A7B3F", "actorBkg": "#F7A8C4", "actorBorder": "#C2185B", "actorTextColor": "#0B0B0B", "actorLineColor": "#9A7B3F", "signalColor": "#0B0B0B", "signalTextColor": "#0B0B0B", "labelBoxBkgColor": "#FBE7A1", "labelBoxBorderColor": "#9A7B3F", "labelTextColor": "#0B0B0B", "loopTextColor": "#0B0B0B", "noteBkgColor": "#FBE7A1", "noteBorderColor": "#9A7B3F", "noteTextColor": "#0B0B0B", "activationBkgColor": "#9FDED6", "activationBorderColor": "#0F766E", "sequenceNumberColor": "#FBF6EE"}}}%%
 flowchart TD
     S1{"Connector document property<br/>Set Properties → Connectors → JEV<br/>JEV Question Set"} -->|set| USE["Use it"]
     S1 -->|blank| S2{"Dynamic document property<br/>named questionSet<br/>(any case)"}
@@ -368,6 +401,14 @@ flowchart TD
     S3 -->|blank| S4{"Operation field<br/>Question Set"}
     S4 -->|set| USE
     S4 -->|blank| E["INVALID_INPUT error<br/>with a Found: diagnostic"]
+    class S1,S2,S3,S4 decision
+    class USE focus
+    class E error
+    classDef focus fill:#F7A8C4,stroke:#C2185B,stroke-width:2px,color:#0B0B0B
+    classDef decision fill:#9FDED6,stroke:#0F766E,stroke-width:2px,color:#0B0B0B
+    classDef highlight fill:#FBE7A1,stroke:#9A7B3F,stroke-width:1.5px,color:#0B0B0B
+    classDef external fill:#FFFFFF,stroke:#0F766E,stroke-width:1.5px,stroke-dasharray:5 3,color:#0B0B0B
+    classDef error fill:#FFFFFF,stroke:#D03B3B,stroke-width:2px,color:#0B0B0B
 ```
 
 The same order applies to **Model** (`jevModel` / `model`) and **Confidence Threshold** (`jevConfidenceThreshold` / `confidenceThreshold`).
@@ -379,11 +420,13 @@ Typical pattern: keep question sets in a **Cross Reference Table** or **Process 
 ## How a request flows
 
 ```mermaid
+%%{init: {"theme": "base", "fontFamily": "Josefin Sans, trebuchet ms, verdana, arial, sans-serif", "themeVariables": {"fontSize": "15px", "background": "#FBF6EE", "primaryColor": "#FBF6EE", "primaryTextColor": "#0B0B0B", "primaryBorderColor": "#9A7B3F", "lineColor": "#9A7B3F", "textColor": "#0B0B0B", "secondaryColor": "#9FDED6", "tertiaryColor": "#FBE7A1", "edgeLabelBackground": "#FBF6EE", "clusterBkg": "#FBF6EE", "clusterBorder": "#9A7B3F", "actorBkg": "#F7A8C4", "actorBorder": "#C2185B", "actorTextColor": "#0B0B0B", "actorLineColor": "#9A7B3F", "signalColor": "#0B0B0B", "signalTextColor": "#0B0B0B", "labelBoxBkgColor": "#FBE7A1", "labelBoxBorderColor": "#9A7B3F", "labelTextColor": "#0B0B0B", "loopTextColor": "#0B0B0B", "noteBkgColor": "#FBE7A1", "noteBorderColor": "#9A7B3F", "noteTextColor": "#0B0B0B", "activationBkgColor": "#9FDED6", "activationBorderColor": "#0F766E", "sequenceNumberColor": "#FBF6EE"}}}%%
 sequenceDiagram
     autonumber
     participant P as Boomi process
     participant C as JEV connector
     participant J as JEV API
+    rect rgb(251, 246, 238)
     P->>C: document + operation settings
     C->>C: resolve question set, model, threshold
     C->>C: read text, reject binary / oversized
@@ -405,6 +448,7 @@ sequenceDiagram
             J-->>C: error
             C-->>P: Application Error with JEV status and message
         end
+    end
     end
 ```
 
