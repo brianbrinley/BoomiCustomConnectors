@@ -1,0 +1,68 @@
+/* Valence — Miami Deco theme. Canonical values: brand/tokens.json */
+@import url("https://fonts.googleapis.com/css2?family=Poiret+One&family=Josefin+Sans:wght@400;600;700&display=swap");
+
+:root {
+  /* Miami Day */
+  --valence-bg: #FBF6EE;          /* Sand */
+  --valence-text: #0B0B0B;        /* Ink */
+  --valence-text-muted: #52514E;
+  --valence-primary: #C2185B;     /* Flamingo, text-safe */
+  --valence-primary-fill: #F7A8C4;/* Flamingo Pastel, fill only */
+  --valence-secondary: #0F766E;   /* Ocean Drive Teal, text-safe */
+  --valence-secondary-hover: #115E59;
+  --valence-secondary-fill: #9FDED6; /* Seafoam, fill only */
+  --valence-highlight: #FBE7A1;   /* Sunset Lemon, behind dark text */
+  --valence-line: #9A7B3F;        /* Deco Gold, graphics and large text */
+  --valence-surface: #FFFFFF;
+
+  /* Status: fixed in both themes; always with icon + label */
+  --valence-healthy: #0CA30C;
+  --valence-warning: #FAB219;
+  --valence-serious: #EC835A;
+  --valence-critical: #D03B3B;
+
+  --valence-font-display: "Poiret One", sans-serif;
+  --valence-font-heading: "Josefin Sans", sans-serif;
+  --valence-font-body: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    /* Miami Night: designed for dark, not auto-inverted */
+    --valence-bg: #161A2E;          /* Midnight Navy */
+    --valence-surface: #1F2440;
+    --valence-text: #FFFFFF;
+    --valence-text-muted: #C9CBE0;
+    --valence-primary: #F48FB1;     /* Neon Flamingo */
+    --valence-primary-fill: #F48FB1;
+    --valence-secondary: #5EEAD4;   /* Neon Seafoam */
+    --valence-secondary-hover: #99F6E4;
+    --valence-secondary-fill: #5EEAD4;
+    --valence-highlight: #FBE7A1;
+    --valence-line: #D4B46A;        /* Deco Gold on dark */
+  }
+}
+:root[data-theme="dark"] {
+  --valence-bg: #161A2E;
+  --valence-surface: #1F2440;
+  --valence-text: #FFFFFF;
+  --valence-text-muted: #C9CBE0;
+  --valence-primary: #F48FB1;
+  --valence-primary-fill: #F48FB1;
+  --valence-secondary: #5EEAD4;
+  --valence-secondary-hover: #99F6E4;
+  --valence-secondary-fill: #5EEAD4;
+  --valence-highlight: #FBE7A1;
+  --valence-line: #D4B46A;
+}
+
+body {
+  margin: 0;
+  background: var(--valence-bg);
+  color: var(--valence-text);
+  font-family: var(--valence-font-body);
+}
+h1, h2, h3, h4, h5, h6, label, th { font-family: var(--valence-font-heading); }
+a { color: var(--valence-secondary); }
+a:hover { color: var(--valence-secondary-hover); }
+.valence-wordmark { font-family: var(--valence-font-display); color: var(--valence-primary); letter-spacing: 0.04em; }

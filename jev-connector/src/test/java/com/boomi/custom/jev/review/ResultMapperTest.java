@@ -89,13 +89,43 @@ public class ResultMapperTest {
         assertTrue(out.path("reviewReasons").get(0).asText().contains("no option selected"));
     }
 
+    private static final String SCORE_QUESTION =
+            "{\"frustration\":{\"type\":\"score\",\"instructions\":\"How frustrated is the customer?\","
+            + "\"criteria\":[\"Calm\",\"Frustrated\",\"Very angry\"]}}";
+
     @Test
-    public void scoreWithoutConfidencePasses() throws Exception {
-        QuestionSet qs = QuestionSet.parse("{\"urgency\":{\"type\":\"score\",\"instructions\":\"How urgent?\"}}");
-        ObjectNode out = ResultMapper.map(MAPPER.readTree("{\"answers\":{\"urgency\":{\"score\":0.7}}}"), qs, 0.8, false);
-        assertEquals(0.7, out.path("results").path("urgency").path("value").asDouble(), 1e-9);
-        assertTrue(out.path("results").path("urgency").path("confidence").isNull());
+    public void mapsScoreWithLevelLabel() throws Exception {
+        // Published example: probability-weighted score between levels, with legend and confidence
+        String resp = "{\"answers\":{\"frustration\":{\"type\":\"score\",\"score\":1.05,"
+                + "\"legend\":{\"0\":\"Calm\",\"1\":\"Frustrated\",\"2\":\"Very angry\"},"
+                + "\"probabilities\":{\"0\":0,\"1\":0.95,\"2\":0.05},\"confidence\":0.92}}}";
+        ObjectNode out = ResultMapper.map(MAPPER.readTree(resp), QuestionSet.parse(SCORE_QUESTION), 0.8, false);
+        JsonNode r = out.path("results").path("frustration");
+        assertEquals(1.05, r.path("value").asDouble(), 1e-9);
+        assertEquals("Frustrated", r.path("level").asText());
+        assertEquals(0.92, r.path("confidence").asDouble(), 1e-9);
+        assertEquals(0.95, r.path("probabilities").path("1").asDouble(), 1e-9);
+        assertEquals("Very angry", r.path("legend").path("2").asText());
+        assertTrue(r.path("passed").asBoolean());
         assertEquals("DECIDED", out.path("status").asText());
+    }
+
+    @Test
+    public void scoreConfidenceFallsBackToTopProbability() throws Exception {
+        String resp = "{\"answers\":{\"frustration\":{\"score\":0.3,\"probabilities\":{\"0\":0.7,\"1\":0.3,\"2\":0}}}}";
+        ObjectNode out = ResultMapper.map(MAPPER.readTree(resp), QuestionSet.parse(SCORE_QUESTION), 0.8, false);
+        JsonNode r = out.path("results").path("frustration");
+        assertEquals(0.7, r.path("confidence").asDouble(), 1e-9);
+        assertTrue(r.path("level").isNull()); // no legend returned
+        assertEquals("NEEDS_REVIEW", out.path("status").asText());
+    }
+
+    @Test
+    public void missingScoreNeedsReview() throws Exception {
+        ObjectNode out = ResultMapper.map(MAPPER.readTree("{\"answers\":{\"frustration\":{\"confidence\":0.9}}}"),
+                QuestionSet.parse(SCORE_QUESTION), 0.8, false);
+        assertEquals("NEEDS_REVIEW", out.path("status").asText());
+        assertTrue(out.path("reviewReasons").get(0).asText().contains("no score"));
     }
 
     @Test

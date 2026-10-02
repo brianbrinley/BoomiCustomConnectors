@@ -18,7 +18,7 @@ import java.util.Map;
  * {
  *   "department":  {"type": "choice", "instructions": "...", "criteria": {"billing": "...", "technical": "..."}},
  *   "needs_human": {"type": "noul",   "instructions": "..."},
- *   "urgency":     {"type": "score",  "instructions": "..."}
+ *   "urgency":     {"type": "score",  "instructions": "...", "criteria": ["Low", "Medium", "High"]}
  * }
  * </pre>
  */
@@ -27,6 +27,15 @@ public final class QuestionSet {
     public static final String TYPE_CHOICE = "choice";
     public static final String TYPE_SCORE = "score";
     public static final String TYPE_NOUL = "noul";
+
+    public static final String REQUIRED_MESSAGE = "Question Set is required in Document Review mode. Set it on the "
+            + "operation, on the connector shape's Dynamic Operation Properties tab, as a JEV connector document "
+            + "property (Set Properties > Connectors > JEV > JEV Question Set), or as a dynamic document property "
+            + "named 'questionSet'";
+
+    /** JEV accepts 2 to 10 ordered levels for a score question. */
+    static final int MIN_SCORE_LEVELS = 2;
+    static final int MAX_SCORE_LEVELS = 10;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -40,7 +49,7 @@ public final class QuestionSet {
 
     public static QuestionSet parse(String json) throws InvalidInputException {
         if (json == null || json.trim().isEmpty()) {
-            throw new InvalidInputException("Question Set is required in Document Review mode");
+            throw new InvalidInputException(REQUIRED_MESSAGE);
         }
         JsonNode node;
         try {
@@ -79,11 +88,26 @@ public final class QuestionSet {
                     throw new InvalidInputException(
                             "Choice question '" + id + "' needs a non-empty 'criteria' object of option ID to description");
                 }
+            } else if (TYPE_SCORE.equals(type)) {
+                validateScoreCriteria(id, q.path("criteria"));
             }
             ((ObjectNode) q).put("type", type);
             types.put(id, type);
         }
         return new QuestionSet(copy, types);
+    }
+
+    private static void validateScoreCriteria(String id, JsonNode criteria) throws InvalidInputException {
+        if (!criteria.isArray() || criteria.size() < MIN_SCORE_LEVELS || criteria.size() > MAX_SCORE_LEVELS) {
+            throw new InvalidInputException("Score question '" + id + "' needs 'criteria' as an array of "
+                    + MIN_SCORE_LEVELS + " to " + MAX_SCORE_LEVELS + " level descriptions, lowest first");
+        }
+        for (JsonNode level : criteria) {
+            if (!level.isTextual() || level.asText().trim().isEmpty()) {
+                throw new InvalidInputException(
+                        "Score question '" + id + "' has a blank or non-text level in 'criteria'");
+            }
+        }
     }
 
     /** Deep copy of the questions, safe to embed in a request. */
@@ -99,6 +123,12 @@ public final class QuestionSet {
     /** Option IDs of a choice question, in declaration order (empty for other types). */
     public Iterable<String> choiceOptions(String questionId) {
         JsonNode criteria = questions.path(questionId).path("criteria");
-        return criteria::fieldNames;
+        return criteria.isObject() ? criteria::fieldNames : Collections::emptyIterator;
+    }
+
+    /** Number of levels of a score question (0 for other types). */
+    public int scoreLevels(String questionId) {
+        JsonNode criteria = questions.path(questionId).path("criteria");
+        return criteria.isArray() ? criteria.size() : 0;
     }
 }

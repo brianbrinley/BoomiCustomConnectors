@@ -4,8 +4,11 @@ import com.boomi.connector.api.ObjectData;
 import com.boomi.connector.api.OperationContext;
 import com.boomi.connector.api.OperationResponse;
 import com.boomi.connector.api.OperationStatus;
+import com.boomi.connector.api.Payload;
+import com.boomi.connector.api.PayloadMetadata;
 import com.boomi.connector.api.UpdateRequest;
 import com.boomi.connector.util.BaseUpdateOperation;
+import com.boomi.connector.util.PayloadUtil;
 import com.boomi.connector.util.ResponseUtil;
 import com.boomi.custom.jev.client.JevClient;
 import com.boomi.custom.jev.client.JevHttpResponse;
@@ -15,6 +18,7 @@ import com.boomi.custom.jev.review.QuestionSet;
 import com.boomi.custom.jev.review.RequestBuilder;
 import com.boomi.custom.jev.review.RequestMode;
 import com.boomi.custom.jev.review.ResultMapper;
+import com.boomi.custom.jev.review.ResultProperties;
 import com.boomi.custom.jev.review.ReviewConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -58,7 +62,7 @@ public class JevReviewOperation extends BaseUpdateOperation {
 
         for (ObjectData document : request) {
             try {
-                process(document, baseConfig.withOverrides(document.getDynamicOperationProperties()), client, response);
+                process(document, baseConfig.withOverrides(document), client, response);
             } catch (InvalidInputException e) {
                 document.getLogger().log(Level.WARNING, "Document rejected: {0}", e.getMessage());
                 response.addEmptyResult(document, OperationStatus.APPLICATION_ERROR, INVALID_INPUT, e.getMessage());
@@ -88,16 +92,29 @@ public class JevReviewOperation extends BaseUpdateOperation {
             jevRequest = raw.getRequest();
             questions = raw.getQuestions();
         } else {
+            if (config.getQuestionSetJson() == null || config.getQuestionSetJson().trim().isEmpty()) {
+                throw new InvalidInputException(QuestionSet.REQUIRED_MESSAGE + " [Found: "
+                        + config.getQuestionSetSources() + "]");
+            }
             questions = QuestionSet.parse(config.getQuestionSetJson());
             jevRequest = RequestBuilder.forReview(text, config.getStateFormat(), config.getStateKey(), questions,
                     config.getModel());
         }
 
+        ReviewConfig.PropertyFlags flags = config.getPropertyFlags();
         JevHttpResponse jevResponse = client.decide(jevRequest);
         String code = String.valueOf(jevResponse.getStatusCode());
         if (!jevResponse.isSuccess()) {
+            PayloadMetadata metadata = null;
+            if (flags.any()) {
+                metadata = response.createMetadata();
+                ResultProperties.applyError(metadata, code, flags.documentProperties(), flags.trackedProperties());
+                if (flags.keepOriginalDocument()) {
+                    ResultProperties.applyOriginalDocument(metadata, text);
+                }
+            }
             response.addResult(document, OperationStatus.APPLICATION_ERROR, code, jevResponse.errorMessage(),
-                    ResponseUtil.toPayload(jevResponse.getBody(), StandardCharsets.UTF_8));
+                    payload(jevResponse.getBody(), metadata));
             return;
         }
 
@@ -116,7 +133,21 @@ public class JevReviewOperation extends BaseUpdateOperation {
         }
 
         ObjectNode result = ResultMapper.map(body, questions, threshold, config.isIncludeRaw());
+        PayloadMetadata metadata = null;
+        if (flags.any()) {
+            metadata = response.createMetadata();
+            ResultProperties.apply(metadata, result, flags.documentProperties(), flags.trackedProperties());
+            if (flags.keepOriginalDocument()) {
+                ResultProperties.applyOriginalDocument(metadata, text);
+            }
+        }
         response.addResult(document, OperationStatus.SUCCESS, code, result.path("status").asText(),
-                ResponseUtil.toPayload(result.toString(), StandardCharsets.UTF_8));
+                payload(result.toString(), metadata));
+    }
+
+    private static Payload payload(String content, PayloadMetadata metadata) {
+        return metadata == null
+                ? ResponseUtil.toPayload(content, StandardCharsets.UTF_8)
+                : PayloadUtil.toPayload(content, StandardCharsets.UTF_8, metadata);
     }
 }

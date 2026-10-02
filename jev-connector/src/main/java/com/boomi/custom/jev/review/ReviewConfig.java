@@ -2,11 +2,15 @@ package com.boomi.custom.jev.review;
 
 import com.boomi.connector.api.DynamicPropertyMap;
 import com.boomi.connector.api.PropertyMap;
+import com.boomi.connector.api.TrackedData;
 import com.boomi.custom.jev.JevConstants;
+
+import java.util.Map;
+import java.util.TreeSet;
 
 /**
  * Operation settings for one document: the operation's fields, with any per-document overrides applied
- * (fields marked {@code overrideable} in the descriptor arrive as dynamic operation properties).
+ * (see {@link #withOverrides(TrackedData)}).
  */
 public final class ReviewConfig {
 
@@ -18,9 +22,20 @@ public final class ReviewConfig {
     private final String thresholdValue;
     private final boolean includeRaw;
     private final long maxDocumentBytes;
+    private final PropertyFlags flags;
+    private final String questionSetSources;
 
     private ReviewConfig(RequestMode mode, String questionSetJson, String model, StateFormat stateFormat,
-            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes) {
+            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes, PropertyFlags flags) {
+        this(mode, questionSetJson, model, stateFormat, stateKey, thresholdValue, includeRaw, maxDocumentBytes, flags,
+                "operation field: " + describe(questionSetJson));
+    }
+
+    private ReviewConfig(RequestMode mode, String questionSetJson, String model, StateFormat stateFormat,
+            String stateKey, String thresholdValue, boolean includeRaw, long maxDocumentBytes, PropertyFlags flags,
+            String questionSetSources) {
+        this.flags = flags;
+        this.questionSetSources = questionSetSources;
         this.mode = mode;
         this.questionSetJson = questionSetJson;
         this.model = model;
@@ -42,26 +57,99 @@ public final class ReviewConfig {
                 op.getProperty(JevConstants.STATE_KEY),
                 op.getProperty(JevConstants.CONFIDENCE_THRESHOLD),
                 Boolean.TRUE.equals(op.getBooleanProperty(JevConstants.INCLUDE_RAW_RESPONSE, Boolean.FALSE)),
-                maxKb == null ? 0L : maxKb * 1024L);
+                maxKb == null ? 0L : maxKb * 1024L,
+                new PropertyFlags(
+                        flag(op, JevConstants.SET_DOCUMENT_PROPERTIES),
+                        flag(op, JevConstants.KEEP_ORIGINAL_DOCUMENT),
+                        flag(op, JevConstants.SET_TRACKED_PROPERTIES)));
     }
 
-    /** Applies per-document overrides of the overrideable fields. */
-    public ReviewConfig withOverrides(DynamicPropertyMap overrides) {
-        if (overrides == null) {
+    private static boolean flag(PropertyMap op, String id) {
+        return Boolean.TRUE.equals(op.getBooleanProperty(id, Boolean.FALSE));
+    }
+
+    /**
+     * Applies per-document values of the overrideable fields. Boomi can deliver them three ways; the first
+     * non-blank value wins, falling back to the operation field:
+     * <ol>
+     *   <li>JEV connector document property (Set Properties &gt; Connectors &gt; JEV), e.g. {@code jevQuestionSet}</li>
+     *   <li>Dynamic document property whose name matches the field ID, ignoring case
+     *       (e.g. {@code questionSet}, {@code model}, {@code confidenceThreshold})</li>
+     *   <li>Dynamic Operation Properties tab on the connector shape</li>
+     * </ol>
+     */
+    public ReviewConfig withOverrides(TrackedData document) {
+        if (document == null) {
             return this;
         }
-        String questions = overrides.getProperty(JevConstants.QUESTION_SET);
-        String overrideModel = overrides.getProperty(JevConstants.MODEL);
-        String threshold = overrides.getProperty(JevConstants.CONFIDENCE_THRESHOLD);
-        if (isBlank(questions) && isBlank(overrideModel) && isBlank(threshold)) {
-            return this;
-        }
+        String questions = override(document, JevConstants.QUESTION_SET, JevConstants.DOC_PROP_QUESTION_SET);
+        String overrideModel = override(document, JevConstants.MODEL, JevConstants.DOC_PROP_MODEL);
+        String threshold = override(document, JevConstants.CONFIDENCE_THRESHOLD,
+                JevConstants.DOC_PROP_CONFIDENCE_THRESHOLD);
         return new ReviewConfig(mode,
                 isBlank(questions) ? questionSetJson : questions,
                 isBlank(overrideModel) ? model : overrideModel.trim(),
                 stateFormat, stateKey,
                 isBlank(threshold) ? thresholdValue : threshold,
-                includeRaw, maxDocumentBytes);
+                includeRaw, maxDocumentBytes, flags,
+                describeQuestionSetSources(document));
+    }
+
+    private static String override(TrackedData document, String fieldId, String documentPropertyId) {
+        String value = document.getDynamicProperties().get(documentPropertyId);
+        if (isBlank(value)) {
+            value = getIgnoreCase(document.getUserDefinedProperties(), fieldId);
+        }
+        if (isBlank(value)) {
+            DynamicPropertyMap operationProps = document.getDynamicOperationProperties();
+            value = operationProps == null ? null : operationProps.getProperty(fieldId);
+        }
+        return value;
+    }
+
+    /** What each source held for the Question Set; included in the "required" error to make setup issues visible. */
+    private String describeQuestionSetSources(TrackedData document) {
+        DynamicPropertyMap operationProps = document.getDynamicOperationProperties();
+        Map<String, String> ddps = document.getUserDefinedProperties();
+        return questionSetSources
+                + "; Dynamic Operation Properties: "
+                + describe(operationProps == null ? null : operationProps.getProperty(JevConstants.QUESTION_SET))
+                + "; connector document property " + JevConstants.DOC_PROP_QUESTION_SET + ": "
+                + describe(document.getDynamicProperties().get(JevConstants.DOC_PROP_QUESTION_SET))
+                + "; connector document properties present: " + names(document.getDynamicProperties())
+                + "; dynamic document properties present: " + names(ddps);
+    }
+
+    private static String names(Map<String, String> props) {
+        return props == null || props.isEmpty() ? "none" : new TreeSet<>(props.keySet()).toString();
+    }
+
+    private static String describe(String value) {
+        if (value == null) {
+            return "not set";
+        }
+        return value.trim().isEmpty() ? "empty" : value.length() + " chars";
+    }
+
+    /** Where the connector looked for the Question Set and what it found (values are not included). */
+    public String getQuestionSetSources() {
+        return questionSetSources;
+    }
+
+    private static String getIgnoreCase(Map<String, String> props, String key) {
+        if (props == null) {
+            return null;
+        }
+        String exact = props.get(key);
+        if (exact != null) {
+            return exact;
+        }
+        for (Map.Entry<String, String> e : props.entrySet()) {
+            if (key.equalsIgnoreCase(e.getKey())) {
+                return e.getValue();
+            }
+        }
+        return null;
     }
 
     private static boolean isBlank(String s) {
@@ -98,5 +186,39 @@ public final class ReviewConfig {
 
     public long getMaxDocumentBytes() {
         return maxDocumentBytes;
+    }
+
+    public PropertyFlags getPropertyFlags() {
+        return flags;
+    }
+
+    /** Feature flags controlling which Boomi properties the connector sets on output documents. */
+    public static final class PropertyFlags {
+        private final boolean documentProperties;
+        private final boolean keepOriginalDocument;
+        private final boolean trackedProperties;
+
+        public PropertyFlags(boolean documentProperties, boolean keepOriginalDocument, boolean trackedProperties) {
+            this.documentProperties = documentProperties;
+            // The original document is stored as a dynamic document property, so it needs that feature on
+            this.keepOriginalDocument = documentProperties && keepOriginalDocument;
+            this.trackedProperties = trackedProperties;
+        }
+
+        public boolean documentProperties() {
+            return documentProperties;
+        }
+
+        public boolean keepOriginalDocument() {
+            return keepOriginalDocument;
+        }
+
+        public boolean trackedProperties() {
+            return trackedProperties;
+        }
+
+        public boolean any() {
+            return documentProperties || trackedProperties;
+        }
     }
 }

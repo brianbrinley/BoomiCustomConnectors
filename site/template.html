@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}} · Valence Boomi Custom Connectors</title>
+<meta name="description" content="{{description}}">
+<meta property="og:title" content="{{title}} · Valence Boomi Custom Connectors">
+<meta property="og:description" content="{{description}}">
+<meta property="og:image" content="{{root}}brand/assets/social-preview.png">
+<link rel="icon" href="{{root}}assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="{{root}}brand/valence.css">
+<link rel="stylesheet" href="{{root}}assets/site.css">
+<script>
+  // Apply a saved theme before first paint
+  try { var t = localStorage.getItem('valence-theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <a class="brand" href="{{root}}"><img src="{{root}}assets/favicon.svg" alt="" width="32" height="32"><span class="valence-wordmark">Valence</span><span class="brand-sub">Boomi Custom Connectors</span></a>
+  <nav aria-label="Main">
+{{nav}}
+    <a href="https://github.com/brianbrinley/BoomiCustomConnectors">GitHub</a>
+    <button type="button" class="theme-toggle" aria-label="Switch between Day and Night theme">
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    </button>
+  </nav>
+</header>
+<main id="main" class="content">
+{{content}}
+</main>
+<footer class="site-footer">
+  <div class="rule" aria-hidden="true"><span></span><i></i><b></b><i></i><span></span></div>
+  <p>Built from <a href="https://github.com/brianbrinley/BoomiCustomConnectors/tree/main/{{source_dir}}">{{source}}</a> on <a href="https://github.com/brianbrinley/BoomiCustomConnectors/commit/{{sha}}">{{sha_short}}</a> · {{built}}</p>
+</footer>
+<script>window.VALENCE_NIGHT_INIT = {{night_init}};</script>
+<script type="module" src="{{root}}assets/site.js"></script>
+</body>
+</html>

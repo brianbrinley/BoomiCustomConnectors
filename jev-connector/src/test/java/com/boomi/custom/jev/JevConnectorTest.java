@@ -7,6 +7,7 @@ import com.boomi.connector.api.OperationType;
 import com.boomi.connector.testutil.ConnectorTester;
 import com.boomi.connector.testutil.MutableDynamicPropertyMap;
 import com.boomi.connector.testutil.SimpleOperationResult;
+import com.boomi.connector.testutil.SimplePayloadMetadata;
 import com.boomi.connector.testutil.SimpleTrackedData;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -177,6 +178,151 @@ public class JevConnectorTest {
         assertEquals("jev-1.13", sent.path("model").asText());
         assertTrue(sent.path("questions").has("spam"));
         assertTrue(payload(r).path("results").path("spam").has("value"));
+    }
+
+    private static final String SPAM_QUESTIONS = "{\"spam\":{\"type\":\"noul\",\"instructions\":\"Is this spam?\"}}";
+    private static final String SPAM_RESPONSE = "{\"answers\":{\"spam\":{\"type\":\"noul\",\"noul\":0.02}}}";
+
+    private SimpleOperationResult executeWithProperties(Map<String, Object> op, Map<String, String> documentProps,
+            Map<String, String> connectorProps) {
+        tester.setOperationContext(OperationType.EXECUTE, connection(), op, JevConstants.OBJECT_TYPE_REVIEW, null);
+        SimpleTrackedData data = new SimpleTrackedData(1, doc("buy now!!!"), documentProps, connectorProps);
+        return tester.executeExecuteOperationWithTrackedData(Collections.singletonList(data)).get(0);
+    }
+
+    @Test
+    public void dynamicDocumentPropertySuppliesQuestionSet() throws Exception {
+        server.enqueue(200, SPAM_RESPONSE);
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+        Map<String, String> ddps = new HashMap<>();
+        ddps.put("QuestionSet", SPAM_QUESTIONS); // name match ignores case
+        ddps.put("MODEL", "jev-from-ddp");
+
+        SimpleOperationResult r = executeWithProperties(op, ddps, Collections.emptyMap());
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        JsonNode sent = MAPPER.readTree(server.getRequests().get(0).body);
+        assertTrue(sent.path("questions").has("spam"));
+        assertEquals("jev-from-ddp", sent.path("model").asText());
+    }
+
+    @Test
+    public void connectorDocumentPropertySuppliesQuestionSet() throws Exception {
+        server.enqueue(200, SPAM_RESPONSE);
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+
+        SimpleOperationResult r = executeWithProperties(op, Collections.emptyMap(),
+                Collections.singletonMap(JevConstants.DOC_PROP_QUESTION_SET, SPAM_QUESTIONS));
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        assertTrue(MAPPER.readTree(server.getRequests().get(0).body).path("questions").has("spam"));
+    }
+
+    @Test
+    public void connectorDocumentPropertyWinsOverDocumentPropertyAndOperation() throws Exception {
+        server.enqueue(200, SPAM_RESPONSE);
+        Map<String, String> ddps = Collections.singletonMap(JevConstants.QUESTION_SET,
+                "{\"other\":{\"type\":\"noul\",\"instructions\":\"Other?\"}}");
+
+        SimpleOperationResult r = executeWithProperties(reviewOperation(), ddps,
+                Collections.singletonMap(JevConstants.DOC_PROP_QUESTION_SET, SPAM_QUESTIONS));
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        JsonNode questions = MAPPER.readTree(server.getRequests().get(0).body).path("questions");
+        assertTrue(questions.has("spam"));
+        assertEquals(1, questions.size());
+    }
+
+    @Test
+    public void missingQuestionSetErrorExplainsWhereToSetIt() {
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+        SimpleOperationResult r = executeWithProperties(op, Collections.emptyMap(), Collections.emptyMap());
+        assertEquals(OperationStatus.APPLICATION_ERROR, r.getStatus());
+        assertTrue(r.getMessage(), r.getMessage().contains("Dynamic Operation Properties"));
+        assertTrue(r.getMessage(), r.getMessage().contains("questionSet"));
+        assertTrue(r.getMessage(), r.getMessage().contains("operation field: not set"));
+        assertTrue(r.getMessage(), r.getMessage().contains("dynamic document properties present: none"));
+    }
+
+    @Test
+    public void unsetConnectorDocumentPropertyDoesNotHideOperationQuestionSet() throws Exception {
+        // Boomi may deliver declared-but-unset connector document properties as empty strings
+        server.enqueue(200, JevTestData.RESPONSE);
+        Map<String, String> connectorProps = new HashMap<>();
+        connectorProps.put(JevConstants.DOC_PROP_QUESTION_SET, "");
+        connectorProps.put(JevConstants.DOC_PROP_MODEL, "");
+        connectorProps.put(JevConstants.DOC_PROP_CONFIDENCE_THRESHOLD, "");
+        Map<String, String> ddps = Collections.singletonMap("someOtherProperty", "x");
+
+        SimpleOperationResult r = executeWithProperties(reviewOperation(), ddps, connectorProps);
+        assertEquals(r.getMessage(), OperationStatus.SUCCESS, r.getStatus());
+        JsonNode sent = MAPPER.readTree(server.getRequests().get(0).body);
+        assertTrue(sent.path("questions").has("department"));
+        assertEquals("jev-latest", sent.path("model").asText());
+    }
+
+    @Test
+    public void missingQuestionSetErrorListsDocumentPropertyNames() {
+        Map<String, Object> op = reviewOperation();
+        op.remove(JevConstants.QUESTION_SET);
+        SimpleOperationResult r = executeWithProperties(op, Collections.singletonMap("DDP_QUESTIONS", "{}"),
+                Collections.emptyMap());
+        assertEquals(OperationStatus.APPLICATION_ERROR, r.getStatus());
+        assertTrue(r.getMessage(), r.getMessage().contains("[DDP_QUESTIONS]"));
+    }
+
+    @Test
+    public void propertiesAreOffByDefault() throws Exception {
+        server.enqueue(200, JevTestData.RESPONSE);
+        SimpleOperationResult r = execute(reviewOperation(), doc("My payout has failed three times.")).get(0);
+        assertEquals(OperationStatus.SUCCESS, r.getStatus());
+        for (SimplePayloadMetadata md : r.getPayloadMetadatas()) {
+            assertTrue(md.getUserDefProps().isEmpty());
+            assertTrue(md.getTrackedProps().isEmpty());
+        }
+    }
+
+    @Test
+    public void featureFlagsSetDocumentAndTrackedProperties() throws Exception {
+        server.enqueue(200, JevTestData.RESPONSE);
+        Map<String, Object> op = reviewOperation();
+        op.put(JevConstants.SET_DOCUMENT_PROPERTIES, true);
+        op.put(JevConstants.KEEP_ORIGINAL_DOCUMENT, true);
+        op.put(JevConstants.SET_TRACKED_PROPERTIES, true);
+
+        SimpleOperationResult r = execute(op, doc("My payout has failed three times.")).get(0);
+        assertEquals(OperationStatus.SUCCESS, r.getStatus());
+        SimplePayloadMetadata md = r.getPayloadMetadatas().get(0);
+        assertEquals("DECIDED", md.getUserDefProps().get("jevStatus"));
+        assertEquals("billing", md.getUserDefProps().get("jev_department"));
+        assertEquals("My payout has failed three times.", md.getUserDefProps().get("jevOriginalDocument"));
+        assertEquals("DECIDED", md.getTrackedProps().get("jevStatus"));
+        assertEquals("department=billing; needs_human=true", md.getTrackedProps().get("jevSummary"));
+    }
+
+    @Test
+    public void keepOriginalDocumentNeedsDocumentProperties() throws Exception {
+        server.enqueue(200, JevTestData.RESPONSE);
+        Map<String, Object> op = reviewOperation();
+        op.put(JevConstants.KEEP_ORIGINAL_DOCUMENT, true);
+        op.put(JevConstants.SET_TRACKED_PROPERTIES, true);
+
+        SimplePayloadMetadata md = execute(op, doc("ticket")).get(0).getPayloadMetadatas().get(0);
+        assertTrue(md.getUserDefProps().isEmpty());
+        assertEquals("DECIDED", md.getTrackedProps().get("jevStatus"));
+    }
+
+    @Test
+    public void jevErrorsAreMarkedWhenFlagsAreOn() throws Exception {
+        server.enqueue(422, "{\"detail\":[{\"msg\":\"Field required\"}]}");
+        Map<String, Object> op = reviewOperation();
+        op.put(JevConstants.SET_DOCUMENT_PROPERTIES, true);
+
+        SimpleOperationResult r = execute(op, doc("ticket")).get(0);
+        assertEquals(OperationStatus.APPLICATION_ERROR, r.getStatus());
+        SimplePayloadMetadata md = r.getPayloadMetadatas().get(0);
+        assertEquals("ERROR", md.getUserDefProps().get("jevStatus"));
+        assertEquals("422", md.getUserDefProps().get("jevErrorCode"));
     }
 
     @Test
