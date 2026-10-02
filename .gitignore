@@ -6,3 +6,5 @@ target/
 .project
 .settings/
 _site/
+.env
+.claude/skills/*/.claude-plugin/types/

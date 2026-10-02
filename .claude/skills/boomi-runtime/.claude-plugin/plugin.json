@@ -1,0 +1,44 @@
+{
+  "name": "boomi-runtime",
+  "version": "0.1.0",
+  "description": "Provisions a temporary Boomi runtime in the session and hands its ID to Boomi Companion",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "namePrefix": {
+      "type": "string",
+      "title": "Runtime name prefix",
+      "description": "Start of every runtime name this mod creates; /boomi reap deletes offline runtimes with this prefix",
+      "default": "cc"
+    },
+    "installRoot": {
+      "type": "string",
+      "title": "Install root",
+      "description": "Folder the runtime is installed under; empty means ~/.boomi-runtimes",
+      "default": ""
+    },
+    "envFile": {
+      "type": "string",
+      "title": "Companion .env file",
+      "description": "Path of Boomi Companion's .env, relative to the session's working directory",
+      "default": ".env"
+    },
+    "installerUrl": {
+      "type": "string",
+      "title": "Installer URL",
+      "description": "Where the Linux runtime installer is downloaded from",
+      "default": "https://platform.boomi.com/atom/atom_install64.sh"
+    },
+    "installerArgs": {
+      "type": "string",
+      "title": "Extra installer arguments",
+      "description": "Added to the quiet install command, space separated (proxy settings, for example)",
+      "default": ""
+    },
+    "ephemeral": {
+      "type": "boolean",
+      "title": "Delete at session end",
+      "description": "Stop the runtime, delete it from the platform and remove its files when the session ends",
+      "default": true
+    }
+  }
+}
