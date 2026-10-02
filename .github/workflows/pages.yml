@@ -1,6 +1,6 @@
 name: Docs Site
 
-# Builds the Valence-themed docs site from the READMEs and publishes it to GitHub Pages.
+# Builds the docs site from the READMEs and publishes it to GitHub Pages.
 # One-time setup: Settings → Pages → Build and deployment → Source: GitHub Actions.
 
 on:

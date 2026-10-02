@@ -1,4 +1,4 @@
-"""Build the Valence-themed GitHub Pages site from the repository READMEs.
+"""Build the GitHub Pages docs site from the repository READMEs.
 
 Usage: python site/build.py [--out _site]
 
@@ -25,10 +25,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = [
     ("README.md", "", "Home"),
     ("jev-connector/README.md", "jev-connector", "JEV Connector"),
-    ("brand/README.md", "brand", "Brand"),
 ]
-# Copied verbatim to the same path on the site
-COPY_DIRS = ["brand"]
+# Copied verbatim to the same path on the site (only what the pages use)
+COPY_PATHS = ["brand/valence.css", "brand/assets"]
 # Built connector files: (glob directory, filename regex, published name prefix)
 DOWNLOADS = {
     "jev-connector": [
@@ -110,8 +109,13 @@ def main():
 
     # Static files
     shutil.copytree(os.path.join(ROOT, "site", "assets"), os.path.join(out, "assets"))
-    for d in COPY_DIRS:
-        shutil.copytree(os.path.join(ROOT, d), os.path.join(out, d))
+    for path in COPY_PATHS:
+        src, dest = os.path.join(ROOT, path), os.path.join(out, path)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        if os.path.isdir(src):
+            shutil.copytree(src, dest)
+        else:
+            shutil.copy(src, dest)
     downloads = {}
     for out_dir, specs in DOWNLOADS.items():
         for src_dir, pattern in specs:

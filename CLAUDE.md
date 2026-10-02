@@ -2,6 +2,8 @@
 
 ## Default theme: Valence — Miami Deco
 
+Valence is the collection name and visual style. Public docs (READMEs, docs site) use the look and may call the collection "Valence", but don't explain the brand or the theme. The brand guide in `brand/` is for maintainers and isn't linked from public docs or published to the site.
+
 Every visual in this repository uses the Valence theme unless the user says otherwise. That covers Mermaid diagrams, README banners, generated HTML pages, artifacts, UI and docs. The source of truth is [`brand/`](brand/README.md):
 
 - Colors, type and usage rules come from `brand/tokens.json`. Don't invent new colors.
