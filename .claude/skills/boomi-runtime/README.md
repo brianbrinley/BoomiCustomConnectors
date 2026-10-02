@@ -96,7 +96,6 @@ Set these under `/config`, or in settings under `pluginConfigs["boomi-runtime"].
 - The quiet installer's `-dir`, `-VatomName`, `-VaccountId` and `-VinstallToken` arguments, and whether the installer creates `bin/atom` directly under `-dir`.
 - The `InstallerToken`, `Environment` and `EnvironmentAtomAttachment` request and response shapes, and the `LIKE` filter used by `reap`.
 - Deleting a component through the API. If that's refused, teardown reports it and the smoke test process stays in your account.
-- The install token is passed on the installer's command line, so other processes in the container can see it while the install runs. It's short-lived (60 minutes).
 
 ## Development
 
