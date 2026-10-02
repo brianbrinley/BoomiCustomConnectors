@@ -2,7 +2,7 @@
 
 ## Default theme: Valence — Miami Deco
 
-Valence is the collection name and visual style. Public docs (READMEs, docs site) use the look and may call the collection "Valence", but don't explain the brand or the theme. The brand guide in `brand/` is for maintainers and isn't linked from public docs or published to the site. The site's **Style** page (`site/style.md`) shows the appearance (colors, type, diagram styles, components) without brand narrative. Its swatches and status colors are generated from `brand/tokens.json` at build time.
+Valence is the collection name and visual style. Public docs (READMEs, docs site) use the look and may call the collection "Valence", but don't explain the brand or the theme. The brand guide in `brand/` is for maintainers and isn't linked from public docs or published to the site. The site's **Style** page (`site/style.md`, at `/style/`, not in the top nav) shows the appearance (colors, type, diagram styles, components) without brand narrative. Its swatches and status colors are generated from `brand/tokens.json` at build time.
 
 Every visual in this repository uses the Valence theme unless the user says otherwise. That covers Mermaid diagrams, README banners, generated HTML pages, artifacts, UI and docs. The source of truth is [`brand/`](brand/README.md):
 
@@ -26,6 +26,6 @@ Every visual in this repository uses the Valence theme unless the user says othe
 - `site/build.py` renders the READMEs listed in its `PAGES` with `site/template.html`, `brand/valence.css` and `site/assets/`.
 - Mermaid diagrams render in the browser and switch to `brand/mermaid-init-night.txt` in Night mode.
 
-To publish a new README as a page (e.g. a new connector), add it to `PAGES`, plus `DOWNLOADS` if it ships a CAR. Keep README links relative: the build rewrites them for the site and sends anything not on the site to GitHub.
+To publish a new README as a page (e.g. a new connector), add it to `PAGES`, plus `DOWNLOADS` if it ships a CAR. A `PAGES` entry whose nav label is `None` is built but left out of the top nav. Keep README links relative: the build rewrites them for the site and sends anything not on the site to GitHub.
 
 Check locally with `pip install -r site/requirements.txt && python site/build.py --out _site`, then open `_site/index.html` through a local web server.

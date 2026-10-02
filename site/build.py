@@ -21,11 +21,11 @@ import markdown
 REPO = "brianbrinley/BoomiCustomConnectors"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# source README -> output directory ("" is the site root), nav label
+# source README -> output directory ("" is the site root), nav label (None: built but not in the top nav)
 PAGES = [
     ("README.md", "", "Home"),
     ("jev-connector/README.md", "jev-connector", "JEV Connector"),
-    ("site/style.md", "style", "Style"),
+    ("site/style.md", "style", None),
 ]
 # Copied verbatim to the same path on the site (only what the pages use)
 COPY_PATHS = ["brand/valence.css", "brand/assets"]
@@ -207,12 +207,12 @@ def main():
         nav = "\n".join(
             f'    <a href="{rel(out_dir, d) + "/" if rel(out_dir, d) else "./"}"'
             + (' aria-current="page"' if d == out_dir else "") + f">{html.escape(l)}</a>"
-            for _, d, l in PAGES)
+            for _, d, l in PAGES if l)
         root_prefix = rel(out_dir, "")
         root_prefix = root_prefix + "/" if root_prefix else ""
         page = (template
-                .replace("{{title}}", html.escape(first_text(r"^#\s+(.+)$", text, label)))
-                .replace("{{description}}", html.escape(first_text(r"^(?![#<|`!\s-])(.{20,}?)$", text, label)[:200]))
+                .replace("{{title}}", html.escape(first_text(r"^#\s+(.+)$", text, label or out_dir)))
+                .replace("{{description}}", html.escape(first_text(r"^(?![#<|`!\s-])(.{20,}?)$", text, label or out_dir)[:200]))
                 .replace("{{nav}}", nav)
                 .replace("{{root}}", root_prefix)
                 .replace("{{night_init}}", json.dumps(night_init))
