@@ -1,4 +1,4 @@
-"""Build the Valence-themed GitHub Pages site from the repository READMEs.
+"""Build the GitHub Pages docs site from the repository READMEs.
 
 Usage: python site/build.py [--out _site]
 
@@ -25,10 +25,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = [
     ("README.md", "", "Home"),
     ("jev-connector/README.md", "jev-connector", "JEV Connector"),
-    ("brand/README.md", "brand", "Brand"),
+    ("site/style.md", "style", "Style"),
 ]
-# Copied verbatim to the same path on the site
-COPY_DIRS = ["brand"]
+# Copied verbatim to the same path on the site (only what the pages use)
+COPY_PATHS = ["brand/valence.css", "brand/assets"]
 # Built connector files: (glob directory, filename regex, published name prefix)
 DOWNLOADS = {
     "jev-connector": [
@@ -96,6 +96,44 @@ def render(md_text):
     return body
 
 
+STATUS_ICONS = {
+    "healthy": '<path d="M5 12.5l4.5 4.5L19 7.5" />',
+    "warning": '<path d="M12 4 L21 20 H3 Z" /><path d="M12 10v4" /><path d="M12 17v.5" />',
+    "serious": '<path d="M12 3l9 9-9 9-9-9z" /><path d="M12 8v5" /><path d="M12 16v.5" />',
+    "critical": '<circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" />',
+}
+
+
+def swatches_html(theme_name, theme):
+    panel = theme["background"]["value"]
+    ink = theme["text"]["value"]
+    muted = theme["mutedText"]["value"]
+    cards = []
+    for token in theme.values():
+        cards.append(
+            '<figure class="swatch">'
+            f'<div class="swatch-chip" style="background:{token["value"]}"></div>'
+            f'<figcaption><strong style="color:{ink}">{html.escape(token["name"])}</strong>'
+            f'<code style="color:{ink}">{token["value"].upper()}</code>'
+            f'<span style="color:{muted}">{html.escape(token["use"])}</span></figcaption></figure>')
+    return (f'<div class="swatch-panel" style="background:{panel}" role="group" '
+            f'aria-label="{theme_name.title()} colors"><div class="swatches">{"".join(cards)}</div></div>')
+
+
+def status_html(status):
+    items = []
+    for name, color in status.items():
+        if name.startswith("_"):
+            continue
+        items.append(
+            f'<div class="status-pill" style="border-color:{color}">'
+            f'<span class="status-icon" style="background:{color}"><svg viewBox="0 0 24 24" width="16" height="16" '
+            f'aria-hidden="true" fill="none" stroke="#0B0B0B" stroke-width="2.4" stroke-linecap="round" '
+            f'stroke-linejoin="round">{STATUS_ICONS.get(name, "")}</svg></span>'
+            f'<span class="status-name">{name.title()}</span><code>{color.upper()}</code></div>')
+    return f'<div class="status-row">{"".join(items)}</div>'
+
+
 def first_text(pattern, text, default):
     m = re.search(pattern, text, re.M)
     return re.sub(r"[*_`\[\]]|\(.*?\)", "", m.group(1)).strip() if m else default
@@ -110,8 +148,13 @@ def main():
 
     # Static files
     shutil.copytree(os.path.join(ROOT, "site", "assets"), os.path.join(out, "assets"))
-    for d in COPY_DIRS:
-        shutil.copytree(os.path.join(ROOT, d), os.path.join(out, d))
+    for path in COPY_PATHS:
+        src, dest = os.path.join(ROOT, path), os.path.join(out, path)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        if os.path.isdir(src):
+            shutil.copytree(src, dest)
+        else:
+            shutil.copy(src, dest)
     downloads = {}
     for out_dir, specs in DOWNLOADS.items():
         for src_dir, pattern in specs:
@@ -131,13 +174,22 @@ def main():
 
     template = open(os.path.join(ROOT, "site", "template.html"), encoding="utf-8").read()
     night_init = open(os.path.join(ROOT, "brand", "mermaid-init-night.txt"), encoding="utf-8").read().strip()
+    mermaid_init = open(os.path.join(ROOT, "brand", "mermaid-init.txt"), encoding="utf-8").read().strip()
+    mermaid_classes = open(os.path.join(ROOT, "brand", "mermaid-classes.txt"), encoding="utf-8").read()
+    with open(os.path.join(ROOT, "brand", "tokens.json"), encoding="utf-8") as fh:
+        tokens = json.load(fh)
     sha = git("rev-parse", "HEAD") or "main"
     built = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     for src, out_dir, label in PAGES:
         text = open(os.path.join(ROOT, src), encoding="utf-8").read()
+        text = (text.replace("%%MERMAID_INIT%%", mermaid_init)
+                .replace("%%MERMAID_CLASSES%%", mermaid_classes.rstrip("\n")))
         src_dir = posixpath.dirname(src)
         body = render(text)
+        body = re.sub(r'<div data-swatches="(\w+)"></div>',
+                      lambda m: swatches_html(m.group(1), tokens["themes"][m.group(1)]), body)
+        body = body.replace("<div data-status></div>", status_html(tokens["status"]))
         if downloads.get(out_dir):
             buttons = []
             for path in downloads[out_dir]:

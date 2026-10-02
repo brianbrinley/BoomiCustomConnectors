@@ -71,7 +71,26 @@ blockquote { margin: 16px 0; padding: 12px 16px; background: color-mix(in srgb, 
 .rule i { width: 9px; height: 9px; transform: rotate(45deg); border: 1.5px solid var(--valence-line); }
 .rule b { width: 5px; height: 5px; transform: rotate(45deg); background: var(--valence-line); }
 
+/* Style page */
+.swatch-panel { border-radius: 16px; padding: 20px; margin: 12px 0 8px; border: 1px solid color-mix(in srgb, var(--valence-line) 50%, transparent); }
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 18px; }
+.swatch { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.swatch-chip { height: 84px; border-radius: 14px 14px 4px 4px; border: 1px solid rgba(127, 127, 127, .35); }
+.swatch figcaption { display: flex; flex-direction: column; gap: 2px; font-size: 14px; line-height: 1.4; }
+.swatch figcaption strong { font-family: var(--valence-font-heading); font-size: 16px; }
+.swatch figcaption code { background: none; border: 0; padding: 0; font-size: 13px; }
+.status-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
+.status-pill { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border: 1.5px solid; border-radius: 999px; background: var(--valence-surface); }
+.status-icon { width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; }
+.status-name { font-family: var(--valence-font-heading); font-weight: 600; }
+.type-specimen { border: 1px solid color-mix(in srgb, var(--valence-line) 50%, transparent); border-radius: 16px; overflow: hidden; }
+.type-row { display: grid; grid-template-columns: 110px 1fr auto; align-items: baseline; gap: 16px; padding: 16px 20px; border-bottom: 1px solid color-mix(in srgb, var(--valence-line) 30%, transparent); }
+.type-row:last-child { border-bottom: 0; }
+.type-label { font-family: var(--valence-font-heading); font-size: 12px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--valence-text-muted); }
+.type-meta { font-size: 13px; color: var(--valence-text-muted); }
+
 @media (max-width: 640px) {
+  .type-row { grid-template-columns: 1fr; gap: 4px; }
   h1 { font-size: 30px; } h2 { font-size: 23px; }
   .brand-sub { display: none; }
   .site-header { position: static; }
