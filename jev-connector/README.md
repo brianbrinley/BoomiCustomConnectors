@@ -5,6 +5,8 @@
 
 # Boomi JEV Connector
 
+**Docs site:** [JEV Connector](https://brianbrinley.github.io/BoomiCustomConnectors/jev-connector/), with the latest CAR and descriptor downloads.
+
 A Boomi custom connector that sends text-based documents to the [JEV](https://huggingface.co/blog/sora-2/jev-ai-api-tutorial-build-your-first-structured-de) decision API and returns a structured, confidence-gated result for each document.
 
 You describe the decisions you want as a **Question Set**, for example "which team?", "does a human need to look at this?" and "how urgent?". The connector handles auth, request building, retries, response parsing and confidence gating. Your Boomi process only has to route on the answers.

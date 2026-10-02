@@ -17,3 +17,13 @@ Every visual in this repository uses the Valence theme unless the user says othe
 - **Text-safe colors** on Sand: Ink, Flamingo, Ocean Drive Teal. Flamingo Pastel, Seafoam and Sunset Lemon are fills only; Deco Gold is for lines and large text.
 - **Status** (healthy / warning / serious / critical) uses the fixed status colors, never brand colors, and never color alone: always with an icon and a label.
 - **New README:** start it with a Valence banner (see `brand/README.md` → Repository page).
+
+## Docs site (GitHub Pages)
+
+`.github/workflows/pages.yml` publishes https://brianbrinley.github.io/BoomiCustomConnectors/ on every merge to `main`:
+- `site/build.py` renders the READMEs listed in its `PAGES` with `site/template.html`, `brand/valence.css` and `site/assets/`.
+- Mermaid diagrams render in the browser and switch to `brand/mermaid-init-night.txt` in Night mode.
+
+To publish a new README as a page (e.g. a new connector), add it to `PAGES`, plus `DOWNLOADS` if it ships a CAR. Keep README links relative: the build rewrites them for the site and sends anything not on the site to GitHub.
+
+Check locally with `pip install -r site/requirements.txt && python site/build.py --out _site`, then open `_site/index.html` through a local web server.

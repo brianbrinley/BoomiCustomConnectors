@@ -100,5 +100,6 @@ GitHub doesn't allow custom CSS on github.com, so the page chrome can't be theme
   ```
 - **Social preview:** upload [`assets/social-preview.png`](assets/social-preview.png) (1280×640) under **Settings → General → Social preview**. That's the card shown when the repo link is shared.
 - **Diagrams:** themed with the Mermaid files above.
+- **Docs site:** GitHub Pages, fully themed (fonts, Day/Night toggle, styled tables and code). It's built from the READMEs by [`site/`](../site/); see the root [`CLAUDE.md`](../CLAUDE.md).
 
 The banners were rendered from HTML using the brand fonts, the flamingo mark and the Deco Gold frame, at 1280×320 (banners) and 1280×640 (social preview).
