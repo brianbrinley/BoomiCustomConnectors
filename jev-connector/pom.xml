@@ -91,11 +91,6 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <version>3.7.1</version>
-        <configuration>
-          <descriptors>
-            <descriptor>src/main/assembly/car.xml</descriptor>
-          </descriptors>
-        </configuration>
         <executions>
           <execution>
             <id>make-car</id>
@@ -103,6 +98,24 @@
             <goals>
               <goal>single</goal>
             </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/car.xml</descriptor>
+              </descriptors>
+            </configuration>
+          </execution>
+          <!-- Runs after make-car (same phase, declared later): one zip with the CAR, descriptor and notes -->
+          <execution>
+            <id>make-bundle</id>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <configuration>
+              <descriptors>
+                <descriptor>src/main/assembly/bundle.xml</descriptor>
+              </descriptors>
+            </configuration>
           </execution>
         </executions>
       </plugin>

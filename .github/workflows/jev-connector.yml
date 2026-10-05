@@ -39,6 +39,7 @@ jobs:
         with:
           name: jev-connector-car
           path: |
+            jev-connector/target/jev-connector-*-bundle.zip
             jev-connector/target/jev-connector-*-car.zip
             jev-connector/src/main/resources/connector-descriptor.xml
           if-no-files-found: error
@@ -48,5 +49,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            jev-connector/target/jev-connector-*-bundle.zip
             jev-connector/target/jev-connector-*-car.zip
             jev-connector/src/main/resources/connector-descriptor.xml
