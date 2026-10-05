@@ -18,6 +18,7 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -323,6 +324,86 @@ public class JevConnectorTest {
         SimplePayloadMetadata md = r.getPayloadMetadatas().get(0);
         assertEquals("ERROR", md.getUserDefProps().get("jevStatus"));
         assertEquals("422", md.getUserDefProps().get("jevErrorCode"));
+    }
+
+    // ---- Max Concurrent Requests ----
+
+    private static final String GROUP_QUESTIONS = "{\"group\":{\"type\":\"choice\",\"instructions\":\"Which group?\","
+            + "\"criteria\":{\"a\":\"First group\",\"b\":\"Second group\"}}}";
+
+    /** Answers from the request itself, so parallel requests can arrive in any order. */
+    private static String groupAnswer(FakeJevServer.Recorded request) {
+        if (request.body.contains("broken")) {
+            return "not json";
+        }
+        String group = request.body.contains("alpha") ? "a" : "b";
+        return "{\"answers\":{\"group\":{\"choice\":\"" + group + "\",\"confidence\":0.99}}}";
+    }
+
+    private List<SimpleOperationResult> executeGrouping(Long maxConcurrentRequests, int documents) {
+        server.respondWith(JevConnectorTest::groupAnswer).delay(60);
+        Map<String, Object> op = reviewOperation();
+        op.put(JevConstants.QUESTION_SET, GROUP_QUESTIONS);
+        if (maxConcurrentRequests != null) {
+            op.put(JevConstants.MAX_CONCURRENT_REQUESTS, maxConcurrentRequests);
+        }
+        List<InputStream> docs = new ArrayList<>();
+        for (int i = 0; i < documents; i++) {
+            docs.add(doc((i % 3 == 0 ? "alpha " : "beta ") + i));
+        }
+        return execute(op, docs.toArray(new InputStream[0]));
+    }
+
+    private static void assertGroupedInOrder(List<SimpleOperationResult> results, int documents) throws Exception {
+        assertEquals(documents, results.size());
+        for (int i = 0; i < documents; i++) {
+            assertEquals(OperationStatus.SUCCESS, results.get(i).getStatus());
+            assertEquals("document " + i, i % 3 == 0 ? "a" : "b",
+                    payload(results.get(i)).path("results").path("group").path("value").asText());
+        }
+    }
+
+    @Test
+    public void requestsRunOneAtATimeByDefault() throws Exception {
+        assertGroupedInOrder(executeGrouping(null, 5), 5);
+        assertEquals(1, server.maxInFlight());
+    }
+
+    @Test
+    public void concurrentRequestsKeepDocumentOrder() throws Exception {
+        assertGroupedInOrder(executeGrouping(4L, 10), 10);
+        assertEquals(10, server.getRequests().size());
+        assertTrue("requests overlapped", server.maxInFlight() > 1);
+        assertTrue("never more than Max Concurrent Requests", server.maxInFlight() <= 4);
+    }
+
+    @Test
+    public void concurrentRequestsAreCapped() throws Exception {
+        assertGroupedInOrder(executeGrouping(500L, 40), 40);
+        assertTrue("capped at 16, saw " + server.maxInFlight(), server.maxInFlight() <= 16);
+    }
+
+    @Test
+    public void concurrentFailuresStayWithTheirDocument() throws Exception {
+        server.respondWith(JevConnectorTest::groupAnswer).delay(30);
+        Map<String, Object> op = reviewOperation();
+        op.put(JevConstants.QUESTION_SET, GROUP_QUESTIONS);
+        op.put(JevConstants.MAX_CONCURRENT_REQUESTS, 3L);
+        List<SimpleOperationResult> results = execute(op,
+                doc("alpha"),
+                new ByteArrayInputStream(new byte[] {0x25, 0x50, 0x44, 0x46, 0x00, 0x01}),
+                doc("beta broken"),
+                doc("alpha"),
+                doc("beta"));
+
+        assertEquals(5, results.size());
+        assertEquals(OperationStatus.SUCCESS, results.get(0).getStatus());
+        assertEquals("INVALID_INPUT", results.get(1).getStatusCode());
+        assertEquals("INVALID_RESPONSE", results.get(2).getStatusCode());
+        assertEquals(OperationStatus.SUCCESS, results.get(3).getStatus());
+        assertEquals("b", payload(results.get(4)).path("results").path("group").path("value").asText());
+        // the binary document never reached JEV
+        assertEquals(4, server.getRequests().size());
     }
 
     @Test
