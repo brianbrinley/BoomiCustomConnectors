@@ -14,6 +14,8 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>11</maven.compiler.release>
+    <!-- Fixed archive timestamps, so an unchanged source builds byte-identical zips and dist/ is not recommitted -->
+    <project.build.outputTimestamp>2026-01-01T00:00:00Z</project.build.outputTimestamp>
     <boomi.sdk.version>2.31.0</boomi.sdk.version>
     <jackson.version>2.17.2</jackson.version>
   </properties>
