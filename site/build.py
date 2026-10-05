@@ -32,6 +32,7 @@ COPY_PATHS = ["brand/valence.css", "brand/assets"]
 # Built connector files: (glob directory, filename regex, published name prefix)
 DOWNLOADS = {
     "jev-connector": [
+        ("jev-connector/target", r"jev-connector-.*-bundle\.zip$"),
         ("jev-connector/target", r"jev-connector-.*-car\.zip$"),
         ("jev-connector/src/main/resources", r"connector-descriptor\.xml$"),
     ],
@@ -194,11 +195,16 @@ def main():
             buttons = []
             for path in downloads[out_dir]:
                 name = posixpath.basename(path)
-                cls = "button" if name.endswith(".zip") else "button secondary"
-                what = "Connector archive (CAR)" if name.endswith(".zip") else "Connector descriptor"
+                if name.endswith("-bundle.zip"):
+                    cls, what = "button", "Everything in one zip"
+                elif name.endswith(".zip"):
+                    cls, what = "button secondary", "Connector archive (CAR)"
+                else:
+                    cls, what = "button secondary", "Connector descriptor"
                 buttons.append(f'<a class="{cls}" href="{rel(out_dir, path)}" download>{what} · {html.escape(name)}</a>')
             block = ('<div class="downloads" role="group" aria-label="Downloads">' + "".join(buttons)
-                     + "</div><p><small>Built from the latest commit on main. Upload both files to your Boomi "
+                     + "</div><p><small>Built from the latest commit on main. The one-zip download holds the archive, "
+                     "the descriptor and install notes; upload the archive and the descriptor to your Boomi "
                      "connector group.</small></p>")
             # After the first heading
             body = re.sub(r"(</h1>)", r"\1" + block.replace("\\", "\\\\"), body, count=1)

@@ -36,7 +36,7 @@ flowchart LR
 **Contents:**
 [Quick start](#quick-start) ·
 [Build](#build) ·
-[Deploy and upgrade](#deploy-and-upgrade-in-boomi) ·
+[Deploy](#deploy-in-boomi) ·
 [Connection](#connection-fields) ·
 [Operation](#operation-review-document) ·
 [Question sets](#writing-a-question-set) ·
@@ -50,10 +50,10 @@ flowchart LR
 
 ## Quick start
 
-1. **Get the files.** Download `jev-connector-car` from the latest green run under **Actions → JEV Connector**, or build locally (see [Build](#build)).
+1. **Get the files.** Download `jev-connector-<version>-bundle.zip` from the latest [release](https://github.com/brianbrinley/BoomiCustomConnectors/releases) and unzip it once. It holds the CAR, the descriptor and install notes. You can also build locally (see [Build](#build)).
 2. **Upload** the CAR and `connector-descriptor.xml` to a Boomi connector group.
 3. **Create a connection** with your JEV Base URL and API key, then click **Test Connection**.
-4. **Create a Review Document operation.** Paste the [support triage question set](#example-1-support-triage-tested) and click **Import**.
+4. **Create a Review Document operation.** Paste the [support triage question set](#example-1-support-triage) and click **Import**.
 5. **Run a test process:** Start → Message (`Help! My payouts have been failing for 3 days.`) → JEV → Stop. The output looks like the [example result](#output-document).
 
 ---
@@ -69,6 +69,7 @@ mvn clean verify
 
 | Output | Upload it as |
 |---|---|
+| `target/jev-connector-<version>-bundle.zip` | Nothing; it is the single download that holds the two files below plus install notes |
 | `target/jev-connector-<version>-car.zip` | The connector **archive** |
 | `src/main/resources/connector-descriptor.xml` | The connector **descriptor** (also inside the CAR under `META-INF/`) |
 
@@ -78,38 +79,17 @@ The bytecode targets Java 11, so it runs on any current Boomi runtime.
 
 `.github/workflows/jev-connector.yml` builds and tests on every push or PR that touches `jev-connector/`. You can also start it by hand from **Actions → JEV Connector → Run workflow**.
 
-- **Download:** open the run → **Artifacts** → `jev-connector-car` (contains the CAR and the descriptor).
+- **Download:** open the run → **Artifacts** → `jev-connector-car` (contains the bundle, the CAR and the descriptor).
 - **Release:** push a tag such as `jev-connector-v1.1.0`; the same files are attached to a GitHub Release.
 
 ---
 
-## Deploy and upgrade in Boomi
+## Deploy in Boomi
 
 **First install**
 1. **Settings → Account Information and Setup → Publisher:** fill in publisher details (one time).
 2. **Developer → Connector Groups → Add:** upload the CAR and the descriptor, and name the connector, e.g. *JEV*.
 3. Custom connectors run on your own runtime (local Atom, Molecule or private cloud).
-
-**Upgrading to a new version**
-
-```mermaid
-%%{init: {"theme": "base", "fontFamily": "Josefin Sans, trebuchet ms, verdana, arial, sans-serif", "themeVariables": {"fontSize": "15px", "background": "#FBF6EE", "primaryColor": "#FBF6EE", "primaryTextColor": "#0B0B0B", "primaryBorderColor": "#9A7B3F", "lineColor": "#9A7B3F", "textColor": "#0B0B0B", "secondaryColor": "#9FDED6", "tertiaryColor": "#FBE7A1", "edgeLabelBackground": "#FBF6EE", "clusterBkg": "#FBF6EE", "clusterBorder": "#9A7B3F", "actorBkg": "#F7A8C4", "actorBorder": "#C2185B", "actorTextColor": "#0B0B0B", "actorLineColor": "#9A7B3F", "signalColor": "#0B0B0B", "signalTextColor": "#0B0B0B", "labelBoxBkgColor": "#FBE7A1", "labelBoxBorderColor": "#9A7B3F", "labelTextColor": "#0B0B0B", "loopTextColor": "#0B0B0B", "noteBkgColor": "#FBE7A1", "noteBorderColor": "#9A7B3F", "noteTextColor": "#0B0B0B", "activationBkgColor": "#9FDED6", "activationBorderColor": "#0F766E", "sequenceNumberColor": "#FBF6EE"}}}%%
-flowchart LR
-    A["Bump version in pom.xml<br/>and build"] --> B["Add a new connector version:<br/>upload BOTH the CAR and the descriptor"]
-    B --> C["Point the process at<br/>the new version"]
-    C --> D["Re-open the operation<br/>and click Import"]
-    D --> E["Test run"]
-    class B focus
-    classDef focus fill:#F7A8C4,stroke:#C2185B,stroke-width:2px,color:#0B0B0B
-    classDef decision fill:#9FDED6,stroke:#0F766E,stroke-width:2px,color:#0B0B0B
-    classDef highlight fill:#FBE7A1,stroke:#9A7B3F,stroke-width:1.5px,color:#0B0B0B
-    classDef external fill:#FFFFFF,stroke:#0F766E,stroke-width:1.5px,stroke-dasharray:5 3,color:#0B0B0B
-    classDef error fill:#FFFFFF,stroke:#D03B3B,stroke-width:2px,color:#0B0B0B
-```
-
-- **Always upload both files.** New fields and properties live in the descriptor.
-- **If a test run behaves like the old version, the process is still on it.** Check which connector version the connection and operation use.
-- **Re-import after upgrading** so the response profile picks up new fields.
 
 ---
 
@@ -190,7 +170,7 @@ Tips:
 - Each question adds tokens, so only ask what you'll act on.
 - The connector checks these rules before calling JEV and reports problems as `INVALID_INPUT`.
 
-### Example 1: support triage (tested)
+### Example 1: support triage
 
 Input: `Help! My payouts have been failing for 3 days.`
 
@@ -297,7 +277,7 @@ When the document already is a JEV request (built in a Map, or received from an 
 
 ## Output document
 
-The real result for [Example 1](#example-1-support-triage-tested):
+The real result for [Example 1](#example-1-support-triage):
 
 ```json
 {
@@ -375,7 +355,7 @@ Compare on **option IDs** for choice questions (`billing`) and on `value` (a num
 
 ### Option B: dynamic document properties (no profile needed)
 
-Turn on **Set Document Properties** and every output document carries:
+Use **Document Properties** and every output document carries:
 
 | Property | Example |
 |---|---|
@@ -396,7 +376,7 @@ Use them in Decision/Route shapes (parameter type **Document Property → Dynami
 
 ### Option C: tracked properties (Process Reporting)
 
-Turn on **Set Tracked Properties** to record these on every document, visible and searchable in **Process Reporting**:
+Use **Tracked Properties** to record these on every document, visible and searchable in **Process Reporting**:
 
 | Tracked property | Example |
 |---|---|
@@ -406,7 +386,7 @@ Turn on **Set Tracked Properties** to record these on every document, visible an
 | JEV Review Reasons | `needs_human: confidence 0.7300 below threshold 0.8000` |
 | JEV Input / Output Tokens | `509` / `93` |
 
-Values longer than 1000 characters are cut off in tracking; the dynamic document properties keep the full text. You can also use Boomi's own **Document Tracking** (Settings → Document Tracking) to track profile elements from the response profile.
+Values longer than 1000 characters are cut off in tracking; the dynamic document properties keep the full text.
 
 ---
 
@@ -487,7 +467,7 @@ Every input document produces exactly one result, so one bad document never fail
 | `[422] … "loc":["body","questions","<id>","score","criteria"] … Field required` | A score question without `criteria` reached JEV, which means you're on a connector version older than 1.0.1 | Add `criteria` as an array of 2–10 levels, and upgrade the connector |
 | `[INVALID_INPUT] Score question '<id>' needs 'criteria' as an array of 2 to 10 level descriptions` | Same problem, caught before calling JEV | Add the `criteria` array |
 | `[INVALID_INPUT] Question Set is required … [Found: …]` | No source had a question set | The `Found` section shows what each source held (`not set` / `empty` / `N chars`) and which property names were present. Check the property name and that it's set before the JEV shape |
-| Behaviour doesn't match the latest version | The process still uses the old connector version | See [upgrading](#deploy-and-upgrade-in-boomi): upload both files, point the process at the new version |
+| Behaviour doesn't match the latest version | The process still uses the old connector version | Upload both the CAR and the descriptor as a new connector version, then point the process at it |
 | New fields missing from the profile | The profile was imported before the change | Re-open the operation and click **Import** |
 | `401` / `403` | Wrong API key, header or scheme | Check the connection; use **Test Connection** |
 | `429` after retries | Rate limited | Lower **Max Concurrent Requests**, raise **Max Retries**, or reduce the batch size |

@@ -1,0 +1,20 @@
+<!-- One download with everything needed to install the connector: the CAR, the descriptor and install notes -->
+<assembly>
+    <id>bundle</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+    <includeBaseDirectory>false</includeBaseDirectory>
+    <files>
+        <file>
+            <source>${project.build.directory}/${project.build.finalName}-car.zip</source>
+        </file>
+        <file>
+            <source>src/main/resources/connector-descriptor.xml</source>
+        </file>
+        <file>
+            <source>src/main/assembly/INSTALL.txt</source>
+            <filtered>true</filtered>
+        </file>
+    </files>
+</assembly>

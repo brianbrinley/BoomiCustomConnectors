@@ -1,0 +1,14 @@
+JEV connector for Boomi, version ${project.version}
+
+This zip contains:
+  ${project.build.finalName}-car.zip   the connector archive (upload as is; do not unzip it)
+  connector-descriptor.xml             the connector descriptor
+  INSTALL.txt                          this file
+
+First install
+  1. Settings > Account Information and Setup > Publisher: fill in publisher details (one time).
+  2. Developer > Connector Groups > Add: upload the archive and the descriptor, and name the connector.
+  3. Custom connectors run on your own runtime (local Atom, Molecule or private cloud).
+
+Documentation
+  https://brianbrinley.github.io/BoomiCustomConnectors/jev-connector/
