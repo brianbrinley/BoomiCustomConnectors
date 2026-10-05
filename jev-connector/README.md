@@ -79,7 +79,7 @@ The bytecode targets Java 11, so it runs on any current Boomi runtime.
 `.github/workflows/jev-connector.yml` builds and tests on every push or PR that touches `jev-connector/`. You can also start it by hand from **Actions → JEV Connector → Run workflow**.
 
 - **Download:** open the run → **Artifacts** → `jev-connector-car` (contains the CAR and the descriptor).
-- **Release:** push a tag such as `jev-connector-v1.0.3`; the same files are attached to a GitHub Release.
+- **Release:** push a tag such as `jev-connector-v1.1.0`; the same files are attached to a GitHub Release.
 
 ---
 
@@ -144,11 +144,33 @@ These are ordinary connection fields, so each environment can have its own value
 | Confidence Threshold | `0.8` | Any answer below it makes the document `NEEDS_REVIEW`. Blank disables gating. Can be set per document |
 | Include Raw JEV Response | false | Adds JEV's unmodified response under `raw`. Handy while testing |
 | Max Document Size (KB) | 1024 | Larger documents are rejected before calling JEV |
+| Max Concurrent Requests | 1 | How many JEV requests may be in flight at once (1–16). See [Throughput](#throughput) |
 | **Set Document Properties** | false | Feature flag: adds the result as [dynamic document properties](#option-b-dynamic-document-properties-no-profile-needed) |
 | **Keep Original Document** | false | Feature flag (needs the one above): keeps the input text in `jevOriginalDocument` |
 | **Set Tracked Properties** | false | Feature flag: records the result in [Process Reporting](#option-c-tracked-properties-process-reporting) |
 
 Binary input (NUL bytes or invalid UTF-8) is rejected before any JEV call.
+
+### Throughput
+
+Every document is one JEV request. **Max Concurrent Requests** sets how many of those requests run at the same time when several documents reach the shape together.
+
+| Value | Behaviour | Use it for |
+|---|---|---|
+| `1` (default) | One request after another, on the process thread. No worker threads are created | Listener and API processes, and anything that handles one document at a time |
+| `2`–`16` | Documents are taken in groups of this size and each group's requests run in parallel | Batches, such as a scheduled process reviewing a few hundred documents |
+
+What stays the same at any value:
+- Every input document still produces exactly one result, and results come back in the order the documents arrived.
+- One failed request is one Application Error. It never fails the rest of the group.
+- Only one group of documents is held in memory at a time.
+
+What changes above 1:
+- **Rate limits are shared.** When JEV answers one request with `429`, the other workers wait out the same back-off before sending their next request.
+- **Values above 16 are treated as 16.**
+- **If the runtime does not allow worker threads**, the connector logs a warning on the document and sends requests one at a time. Nothing fails.
+
+A single document never uses a worker thread, so a higher value costs nothing in processes that usually receive one document. Start low (4 is a reasonable first value) and raise it only while `429`s stay rare.
 
 ---
 
@@ -468,7 +490,8 @@ Every input document produces exactly one result, so one bad document never fail
 | Behaviour doesn't match the latest version | The process still uses the old connector version | See [upgrading](#deploy-and-upgrade-in-boomi): upload both files, point the process at the new version |
 | New fields missing from the profile | The profile was imported before the change | Re-open the operation and click **Import** |
 | `401` / `403` | Wrong API key, header or scheme | Check the connection; use **Test Connection** |
-| `429` after retries | Rate limited | Raise **Max Retries**, or reduce concurrency or batch size |
+| `429` after retries | Rate limited | Lower **Max Concurrent Requests**, raise **Max Retries**, or reduce the batch size |
+| Log says "this runtime did not allow worker threads" | **Max Concurrent Requests** is above 1 on a runtime that blocks thread creation | Nothing is lost: requests run one at a time. Set the field to 1 to silence the warning |
 | `CONNECTION_ERROR` | Runtime can't reach JEV | Check Base URL, proxy and firewall from the runtime host |
 | Lots of `NEEDS_REVIEW` | Threshold too strict for one question | Lower **Confidence Threshold**, or rewrite that question's instructions and criteria to be clearer |
 
@@ -484,7 +507,8 @@ src/main/java/com/boomi/custom/jev/
   JevConnection.java         connection fields → JevClient
   JevBrowser.java            object type, profile import, Test Connection
   JevReviewOperation.java    EXECUTE operation, one JEV call per document
-  client/                    HTTP client, settings, retry
+  client/                    HTTP client, settings, retry, shared rate-limit pause
+  concurrent/                windowed parallel calls with sequential fallback
   review/                    document reading, question set validation, request building,
                              result mapping, output schema, per-document config, result properties
 src/test/java/...            unit tests + end-to-end tests via the SDK ConnectorTester and an in-process fake JEV server

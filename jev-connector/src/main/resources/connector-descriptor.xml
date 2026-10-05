@@ -100,6 +100,10 @@
             <helpText>Documents larger than this are rejected before calling JEV.</helpText>
             <defaultValue>1024</defaultValue>
         </field>
+        <field id="maxConcurrentRequests" label="Max Concurrent Requests" type="integer">
+            <helpText>How many JEV requests may be in flight at once when several documents reach the shape together. 1 sends them one after another. Higher values (up to 16) process the documents in groups of that size, in parallel, and return results in the original order. If the runtime does not allow worker threads, the connector logs a warning and sends requests one at a time.</helpText>
+            <defaultValue>1</defaultValue>
+        </field>
         <field id="setDocumentProperties" label="Set Document Properties" type="boolean">
             <helpText>Adds the result as dynamic document properties on each output document: jevStatus, jevModel, jevReviewReasons, jevInputTokens, jevOutputTokens, and per question jev_&lt;id&gt;, jev_&lt;id&gt;_confidence, jev_&lt;id&gt;_passed and jev_&lt;id&gt;_level (score). Use them in Decision, Route or Map shapes without a profile.</helpText>
             <defaultValue>false</defaultValue>
