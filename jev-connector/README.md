@@ -50,7 +50,7 @@ flowchart LR
 
 ## Quick start
 
-1. **Get the files.** Download `jev-connector-<version>-bundle.zip` from the latest [release](https://github.com/brianbrinley/BoomiCustomConnectors/releases) and unzip it once. It holds the CAR, the descriptor and install notes. You can also build locally (see [Build](#build)).
+1. **Get the files.** Download `jev-connector-<version>-bundle.zip` from the [`dist/`](dist/) folder and unzip it once. It holds the CAR, the descriptor and install notes. You can also build locally (see [Build](#build)).
 2. **Upload** the CAR and `connector-descriptor.xml` to a Boomi connector group.
 3. **Create a connection** with your JEV Base URL and API key, then click **Test Connection**.
 4. **Create a Review Document operation.** Paste the [support triage question set](#example-1-support-triage) and click **Import**.
@@ -80,6 +80,7 @@ The bytecode targets Java 11, so it runs on any current Boomi runtime.
 `.github/workflows/jev-connector.yml` builds and tests on every push or PR that touches `jev-connector/`. You can also start it by hand from **Actions → JEV Connector → Run workflow**.
 
 - **Download:** open the run → **Artifacts** → `jev-connector-car` (contains the bundle, the CAR and the descriptor).
+- **In the repository:** every build on `main` commits the current bundle to [`dist/`](dist/), replacing the previous one.
 - **Release:** push a tag such as `jev-connector-v1.1.0`; the same files are attached to a GitHub Release.
 
 ---
