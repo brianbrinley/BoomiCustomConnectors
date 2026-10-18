@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GenericConnectorDescriptor requireConnectionForBrowse="true">
+    <description>Send prompts to Muse models through the Meta Model API, with per-request usage and cost tracking. List Models shows which models your key can reach.</description>
+
+    <section id="performance" sectionType="page" title="Performance"/>
+    <section id="budgets" sectionType="page" title="Budgets"/>
+
+    <field id="apiKey" label="API key" type="password">
+        <helpText>Create one at dev.meta.ai, under API keys. It is stored encrypted and never written to logs.</helpText>
+    </field>
+    <field id="baseUrl" label="Base URL" type="string">
+        <helpText>The Model API base address. Leave the default unless Meta tells you otherwise.</helpText>
+        <defaultValue>https://api.meta.ai/v1</defaultValue>
+    </field>
+    <field id="model" label="Model" type="string">
+        <helpText>Default model for both operations, for example muse-spark-1.3. A document can name a different one.</helpText>
+        <defaultValue>muse-spark-1.3</defaultValue>
+    </field>
+
+    <field id="connectTimeoutMs" label="Connect timeout (ms)" type="integer" sectionId="performance">
+        <helpText>How long to wait for the API to accept a connection before giving up.</helpText>
+        <defaultValue>10000</defaultValue>
+    </field>
+    <field id="readTimeoutMs" label="Read timeout (ms)" type="integer" sectionId="performance">
+        <helpText>How long to wait for a full response. Reasoning models can take a while; two minutes is a sane start.</helpText>
+        <defaultValue>120000</defaultValue>
+    </field>
+    <field id="maxConnectionsTotal" label="Pooled connections, total" type="integer" sectionId="performance">
+        <helpText>Size of the HTTP connection pool this connection keeps on the Atom. Connections are reused across executions instead of reopened.</helpText>
+        <defaultValue>64</defaultValue>
+    </field>
+    <field id="maxConnectionsPerRoute" label="Pooled connections, per host" type="integer" sectionId="performance">
+        <helpText>How many of the pooled connections may talk to one host at the same time.</helpText>
+        <defaultValue>32</defaultValue>
+    </field>
+    <field id="bulkMaxConcurrency" label="Bulk concurrency" type="integer" sectionId="performance">
+        <helpText>How many documents the Bulk Chat Completion operation sends at once.</helpText>
+        <defaultValue>8</defaultValue>
+    </field>
+    <field id="maxRetries" label="Retries" type="integer" sectionId="performance">
+        <helpText>How many times to retry a request that is rate-limited (429) or fails with a server error (5xx).</helpText>
+        <defaultValue>2</defaultValue>
+    </field>
+    <field id="retryBackoffMs" label="Retry backoff (ms)" type="integer" sectionId="performance">
+        <helpText>Wait this long before the first retry, doubling after each one. A Retry-After header wins when the API sends one.</helpText>
+        <defaultValue>1000</defaultValue>
+    </field>
+    <field id="debugLogging" label="Debug logging" type="boolean" sectionId="performance">
+        <helpText>Log a one-line summary of every API call (model, status, tokens) at INFO, plus full request and response bodies at FINE. Useful when a prompt misbehaves.</helpText>
+        <defaultValue>false</defaultValue>
+    </field>
+
+    <field id="budgetMaxInputTokens" label="Max input tokens" type="integer" sectionId="budgets">
+        <helpText>Stop sending new requests once an execution has used this many input tokens. 0 means no limit.</helpText>
+        <defaultValue>0</defaultValue>
+    </field>
+    <field id="budgetMaxOutputTokens" label="Max output tokens" type="integer" sectionId="budgets">
+        <helpText>Same, for output tokens. 0 means no limit.</helpText>
+        <defaultValue>0</defaultValue>
+    </field>
+    <field id="budgetMaxCostUsd" label="Max cost (USD)" type="string" sectionId="budgets">
+        <helpText>Stop sending new requests once an execution's estimated cost passes this amount, for example 5.00. Blank means no limit.</helpText>
+    </field>
+    <field id="pricePerMillionInputUsd" label="Price per 1M input tokens (USD)" type="string" sectionId="budgets">
+        <helpText>Used only to estimate cost against the budget above. Check dev.meta.ai for current pricing.</helpText>
+        <defaultValue>4.00</defaultValue>
+    </field>
+    <field id="pricePerMillionOutputUsd" label="Price per 1M output tokens (USD)" type="string" sectionId="budgets">
+        <helpText>Same, for output tokens.</helpText>
+        <defaultValue>20.00</defaultValue>
+    </field>
+
+    <testConnection method="CUSTOM"/>
+
+    <operation types="EXECUTE" customTypeId="chat" customTypeLabel="Chat Completion" supportsBrowse="true">
+        <field id="system" label="System prompt" type="string" overrideable="true">
+            <helpText>Instructions the model follows, unless a document sets its own.</helpText>
+        </field>
+        <field id="temperature" label="Temperature" type="string" overrideable="true">
+            <helpText>0 for focused, up to 2 for adventurous. Blank leaves the API default in place.</helpText>
+        </field>
+        <field id="maxTokens" label="Max tokens" type="integer" overrideable="true">
+            <helpText>Caps the response length. Blank leaves the API default in place.</helpText>
+        </field>
+        <field id="responseFormat" label="Response format" type="string" displayType="list" overrideable="true">
+            <helpText>Ask for a JSON object when you plan to map the response downstream. JSON mode works best when the prompt itself mentions JSON.</helpText>
+            <allowedValue label="Text"><value>text</value></allowedValue>
+            <allowedValue label="JSON"><value>json</value></allowedValue>
+        </field>
+        <field id="dryRun" label="Dry run" type="boolean" overrideable="true">
+            <helpText>Build the request and return it as the document, without calling the API. Useful for checking what a map produces. The response profile does not apply.</helpText>
+            <defaultValue>false</defaultValue>
+        </field>
+        <browseConfiguration>
+            <objectTypes>
+                <object id="chatRequest" label="Chat Request"/>
+                <object id="chatResponse" label="Chat Response"/>
+            </objectTypes>
+            <inputProfile label="Request profile" selectable="true">
+                <helpText>Shape of the JSON document you send in.</helpText>
+                <profileType>json</profileType>
+            </inputProfile>
+            <outputProfile label="Response profile" selectable="true">
+                <helpText>Shape of the JSON document the connector returns, including token usage and estimated cost.</helpText>
+                <profileType>json</profileType>
+            </outputProfile>
+        </browseConfiguration>
+    </operation>
+
+    <operation types="EXECUTE" customTypeId="bulkChat" customTypeLabel="Bulk Chat Completion" supportsBrowse="true">
+        <field id="system" label="System prompt" type="string" overrideable="true">
+            <helpText>Instructions the model follows, unless a document sets its own.</helpText>
+        </field>
+        <field id="temperature" label="Temperature" type="string" overrideable="true">
+            <helpText>0 for focused, up to 2 for adventurous. Blank leaves the API default in place.</helpText>
+        </field>
+        <field id="maxTokens" label="Max tokens" type="integer" overrideable="true">
+            <helpText>Caps the response length. Blank leaves the API default in place.</helpText>
+        </field>
+        <field id="responseFormat" label="Response format" type="string" displayType="list" overrideable="true">
+            <helpText>Ask for a JSON object when you plan to map the response downstream. JSON mode works best when the prompt itself mentions JSON.</helpText>
+            <allowedValue label="Text"><value>text</value></allowedValue>
+            <allowedValue label="JSON"><value>json</value></allowedValue>
+        </field>
+        <field id="dryRun" label="Dry run" type="boolean" overrideable="true">
+            <helpText>Build the request and return it as the document, without calling the API. Useful for checking what a map produces. The response profile does not apply.</helpText>
+            <defaultValue>false</defaultValue>
+        </field>
+        <browseConfiguration>
+            <objectTypes>
+                <object id="chatRequest" label="Chat Request"/>
+                <object id="chatResponse" label="Chat Response"/>
+            </objectTypes>
+            <inputProfile label="Request profile" selectable="true">
+                <helpText>Shape of each JSON document you send in.</helpText>
+                <profileType>json</profileType>
+            </inputProfile>
+            <outputProfile label="Response profile" selectable="true">
+                <helpText>Shape of the JSON document returned per input, including token usage and estimated cost.</helpText>
+                <profileType>json</profileType>
+            </outputProfile>
+        </browseConfiguration>
+    </operation>
+
+    <operation types="EXECUTE" customTypeId="listModels" customTypeLabel="List Models" supportsBrowse="true">
+        <browseConfiguration>
+            <objectTypes>
+                <object id="modelList" label="Model List"/>
+            </objectTypes>
+            <inputProfile label="Request profile" selectable="true">
+                <helpText>The input document is ignored; send any single document to trigger the call.</helpText>
+                <profileType>json</profileType>
+            </inputProfile>
+            <outputProfile label="Response profile" selectable="true">
+                <helpText>The models your API key can reach, as a JSON array.</helpText>
+                <profileType>json</profileType>
+            </outputProfile>
+        </browseConfiguration>
+    </operation>
+
+    <trackedProperty id="museResponseId" label="Muse Response ID">
+        <helpText>The API's response id. Useful for support tickets and auditing.</helpText>
+    </trackedProperty>
+    <trackedProperty id="museModel" label="Muse Model">
+        <helpText>The model that served the request, per document.</helpText>
+    </trackedProperty>
+    <trackedProperty id="museFinishReason" label="Muse Finish Reason">
+        <helpText>Why the model stopped: usually "stop"; "length" means it hit the token cap.</helpText>
+    </trackedProperty>
+    <trackedProperty id="musePromptTokens" label="Muse Prompt Tokens">
+        <helpText>Input tokens the document's request consumed.</helpText>
+    </trackedProperty>
+    <trackedProperty id="museCompletionTokens" label="Muse Completion Tokens">
+        <helpText>Output tokens the document's response consumed.</helpText>
+    </trackedProperty>
+    <trackedProperty id="museTotalTokens" label="Muse Total Tokens">
+        <helpText>Prompt plus completion tokens for the document's call.</helpText>
+    </trackedProperty>
+    <trackedProperty id="museEstimatedCostUsd" label="Muse Estimated Cost (USD)">
+        <helpText>Estimated cost of the document's call, in USD.</helpText>
+    </trackedProperty>
+</GenericConnectorDescriptor>

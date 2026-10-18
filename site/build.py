@@ -25,6 +25,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PAGES = [
     ("README.md", "", "Home"),
     ("jev-connector/README.md", "jev-connector", "JEV Connector"),
+    ("muse-connector/README.md", "muse-connector", "Muse Connector"),
     ("site/style.md", "style", None),
 ]
 # Copied verbatim to the same path on the site (only what the pages use)
@@ -35,6 +36,10 @@ DOWNLOADS = {
         ("jev-connector/target", r"jev-connector-.*-bundle\.zip$"),
         ("jev-connector/target", r"jev-connector-.*-car\.zip$"),
         ("jev-connector/src/main/resources", r"connector-descriptor\.xml$"),
+    ],
+    "muse-connector": [
+        ("muse-connector/dist", r"muse-connector-.*\.zip$"),
+        ("muse-connector/src/main/resources", r"connector-descriptor\.xml$"),
     ],
 }
 

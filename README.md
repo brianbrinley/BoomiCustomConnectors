@@ -13,3 +13,4 @@ An open source repository for custom connector assignments
 | Connector | Description |
 |---|---|
 | [jev-connector](jev-connector/) | Sends text documents to the JEV decision API and returns structured, confidence-gated results |
+| [muse-connector](muse-connector/) | Sends prompts to the Muse API (Meta Model API) with token budgets, bulk processing, and usage tracking |
