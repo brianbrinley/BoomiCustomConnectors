@@ -18,7 +18,7 @@ Every visual in this repository uses the Valence theme unless the user says othe
 - **Type:** Poiret One for the wordmark and display only; Josefin Sans for headings and labels; system UI sans for body text and data.
 - **Text-safe colors** on Sand: Ink, Flamingo, Ocean Drive Teal. Flamingo Pastel, Seafoam and Sunset Lemon are fills only; Deco Gold is for lines and large text.
 - **Status** (healthy / warning / serious / critical) uses the fixed status colors, never brand colors, and never color alone: always with an icon and a label.
-- **New README:** start it with a Valence banner (see `brand/README.md` → Repository page).
+- **New README:** start it with a Valence banner rendered from `brand/banner.html` with `brand/render-banner.js` (see `brand/README.md` → Making a banner for a new connector). Never draw a new mark or frame.
 
 ## Docs site (GitHub Pages)
 

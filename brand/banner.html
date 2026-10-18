@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- Valence README banner, 1280x320. Replace {{TITLE}} and {{TAGLINE}}, set the body class to "day" or "night", and screenshot at 1280x320 once the fonts have loaded. Render with brand/render-banner.js; see brand/README.md. -->
+<link href="https://fonts.googleapis.com/css2?family=Poiret+One&family=Josefin+Sans:wght@600&display=block" rel="stylesheet">
+<style>
+:root{--bg:#FBF6EE;--title:#C2185B;--fill:#F7A8C4;--sub:#0F766E;--line:#9A7B3F;--ray:rgba(154,123,63,.22);--text:#3A3936;--beak:#0B0B0B;--water:#0F766E}
+.night{--bg:#161A2E;--title:#F48FB1;--fill:#F7A8C4;--sub:#5EEAD4;--line:#D4B46A;--ray:rgba(212,180,106,.25);--text:#C9CBE0;--beak:#D4B46A;--water:#5EEAD4}
+html,body{margin:0;width:1280px;height:320px;background:var(--bg);overflow:hidden}
+svg{position:absolute;inset:0}
+.t{position:absolute;left:336px;top:58px;font-family:'Poiret One';font-size:84px;color:var(--title);letter-spacing:2px;white-space:nowrap}
+.s{position:absolute;left:338px;top:170px;font-family:'Josefin Sans';font-weight:600;font-size:20px;letter-spacing:5.2px;color:var(--sub)}
+.d{position:absolute;left:336px;top:233px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:18px;color:var(--text)}
+</style></head><body class="THEME">
+<svg width="1280" height="320" viewBox="0 0 1280 320">
+  <g stroke="var(--ray)" stroke-width="1.2">
+    <line x1="1120" y1="320" x2="400" y2="0"/><line x1="1120" y1="320" x2="520" y2="0"/><line x1="1120" y1="320" x2="640" y2="0"/>
+    <line x1="1120" y1="320" x2="740" y2="0"/><line x1="1120" y1="320" x2="830" y2="0"/><line x1="1120" y1="320" x2="910" y2="0"/>
+    <line x1="1120" y1="320" x2="970" y2="0"/><line x1="1120" y1="320" x2="1020" y2="0"/><line x1="1120" y1="320" x2="1060" y2="0"/>
+    <line x1="1120" y1="320" x2="255" y2="72"/><line x1="1120" y1="320" x2="230" y2="195"/><line x1="1120" y1="320" x2="220" y2="320"/>
+  </g>
+  <rect x="0" y="0" width="1280" height="320" fill="none"/>
+  <path d="M160 18 H1246 a14 14 0 0 1 14 14 V286 a14 14 0 0 1 -14 14 H160 a141 141 0 0 1 0 -282 Z" fill="none" stroke="var(--line)" stroke-width="2.5"/>
+  <path d="M160 27 H1240 a11 11 0 0 1 11 11 V280 a11 11 0 0 1 -11 11 H160 a132 132 0 0 1 0 -264 Z" fill="none" stroke="var(--line)" stroke-width="1" opacity=".6"/>
+  <!-- arch mark -->
+  <path d="M101 258 V150 a80 80 0 0 1 160 0 V258" fill="none" stroke="var(--line)" stroke-width="3.5"/>
+  <path d="M111 258 V152 a70 70 0 0 1 140 0 V258" fill="none" stroke="var(--line)" stroke-width="1" opacity=".7"/>
+  <line x1="88" y1="259" x2="276" y2="259" stroke="var(--line)" stroke-width="3.5"/>
+  <g stroke="var(--line)" stroke-width="1" opacity=".6">
+    <line x1="181" y1="245" x2="120" y2="128"/><line x1="181" y1="245" x2="150" y2="96"/><line x1="181" y1="245" x2="181" y2="86"/>
+    <line x1="181" y1="245" x2="212" y2="96"/><line x1="181" y1="245" x2="242" y2="128"/><line x1="181" y1="245" x2="113" y2="165"/><line x1="181" y1="245" x2="249" y2="165"/>
+  </g>
+  <!-- flamingo -->
+  <g stroke="var(--title)" stroke-width="4" fill="none" stroke-linecap="round">
+    <path d="M166 112 C176 120 172 130 162 142 C150 158 154 172 168 180"/>
+    <path d="M183 200 L183 245 M183 214 L198 222 L186 228"/>
+  </g>
+  <circle cx="160" cy="109" r="9" fill="var(--bg)" stroke="var(--title)" stroke-width="4"/>
+  <path d="M152 112 L140 124 L154 118 Z" fill="var(--beak)"/>
+  <ellipse cx="186" cy="188" rx="28" ry="13" fill="var(--fill)" stroke="var(--title)" stroke-width="4"/>
+  <path d="M212 186 L218 180 L206 196 Z" fill="var(--title)"/>
+  <path d="M116 247 q10 -6 20 0 t20 0 t20 0 t20 0 t20 0 t20 0 t20 0" fill="none" stroke="var(--water)" stroke-width="3"/>
+  <!-- rule -->
+  <line x1="336" y1="216" x2="574" y2="216" stroke="var(--line)" stroke-width="1.5"/>
+  <line x1="634" y1="216" x2="872" y2="216" stroke="var(--line)" stroke-width="1.5"/>
+  <g fill="none" stroke="var(--line)" stroke-width="1.5">
+    <path d="M582 216 l7 -6 l7 6 l-7 6 z"/><path d="M613 216 l7 -6 l7 6 l-7 6 z"/>
+  </g>
+  <path d="M600 216 l4 -4 l4 4 l-4 4 z" fill="var(--line)"/>
+</svg>
+<div class="t">{{TITLE}}</div>
+<div class="s">VALENCE · BOOMI CUSTOM CONNECTORS</div>
+<div class="d">{{TAGLINE}}</div>
+</body></html>

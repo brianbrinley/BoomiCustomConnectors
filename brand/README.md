@@ -103,3 +103,24 @@ GitHub doesn't allow custom CSS on github.com, so the page chrome can't be theme
 - **Docs site:** GitHub Pages, fully themed (fonts, Day/Night toggle, styled tables and code). It's built from the READMEs by [`site/`](../site/); see the root [`CLAUDE.md`](../CLAUDE.md).
 
 The banners were rendered from HTML using the brand fonts, the flamingo mark and the Deco Gold frame, at 1280×320 (banners) and 1280×640 (social preview).
+
+### Making a banner for a new connector
+
+Every connector banner comes from one template, [`banner.html`](banner.html): the arch with the flamingo mark, the Deco Gold frame and rays, and the "Valence · Boomi Custom Connectors" line. Only the title and the one-line tagline change. Don't draw a new flamingo or frame; render the template:
+
+```sh
+NODE_PATH="$(npm root -g)" node brand/render-banner.js <slug> "<Name> Connector" "<one-line tagline>"
+# e.g.
+NODE_PATH="$(npm root -g)" node brand/render-banner.js muse "Muse Connector" "Chat completions with budgets, bulk, and usage tracking"
+```
+
+[`render-banner.js`](render-banner.js) writes `assets/<slug>-banner-day.png` and `assets/<slug>-banner-night.png`. It needs Playwright with Chromium and access to Google Fonts, stops if the fonts don't load, and warns if the title runs past the frame (keep it to about 16 characters). Then start the connector's README with:
+
+```html
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../brand/assets/<slug>-banner-night.png">
+  <img alt="<Name> Connector: Valence, Boomi Custom Connectors" src="../brand/assets/<slug>-banner-day.png">
+</picture>
+```
+
+Look at both PNGs before committing: they should match [`jev-banner-day.png`](assets/jev-banner-day.png) in everything but the words.
