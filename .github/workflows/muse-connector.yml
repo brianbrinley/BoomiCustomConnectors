@@ -7,8 +7,8 @@ on:
       - "muse-connector/**"
       - "!muse-connector/dist/**"
       - ".github/workflows/muse-connector.yml"
-  tags:
-    - "muse-connector-v*"
+    tags:
+      - "muse-connector-v*"
   pull_request:
     paths:
       - "muse-connector/**"
