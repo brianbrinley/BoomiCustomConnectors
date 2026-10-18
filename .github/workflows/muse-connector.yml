@@ -1,0 +1,94 @@
+name: Muse Connector
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "muse-connector/**"
+      - "!muse-connector/dist/**"
+      - ".github/workflows/muse-connector.yml"
+  tags:
+    - "muse-connector-v*"
+  pull_request:
+    paths:
+      - "muse-connector/**"
+      - ".github/workflows/muse-connector.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: muse-connector
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build (fetch deps, lint descriptor, package)
+        run: ./build.sh
+
+      - name: Run tests
+        run: |
+          set -euo pipefail
+          CP=$(ls build/deps/*.jar | tr '\n' ':')
+          javac --release 8 -encoding UTF-8 -nowarn -cp "build/classes:$CP" \
+            -d build/test-driver/classes \
+            src/test/java/com/boomi/connector/muse/MuseConnectorTest.java
+          java -cp "build/test-driver/classes:build/classes:build/deps/*" \
+            com.boomi.connector.muse.MuseConnectorTest
+
+      - name: Upload connector archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: muse-connector
+          path: |
+            muse-connector/build/distributions/muse-connector.zip
+            muse-connector/src/main/resources/META-INF/connector-descriptor.xml
+          if-no-files-found: error
+
+      # Keeps a ready-to-download copy of the archive in the repository at muse-connector/dist/.
+      # Pushes made with the workflow token do not start other workflows, so this cannot loop.
+      - name: Commit the archive to muse-connector/dist (main only)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          VERSION=$(tr -d '[:space:]' < muse-connector/VERSION)
+          mkdir -p muse-connector/dist
+          rm -f muse-connector/dist/muse-connector-*.zip
+          cp muse-connector/build/distributions/muse-connector.zip \
+            "muse-connector/dist/muse-connector-${VERSION}.zip"
+          git add -A muse-connector/dist
+          if git diff --cached --quiet; then
+            echo "Archive is unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update the compiled Muse connector archive [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Name the release archive (tags only)
+        if: startsWith(github.ref, 'refs/tags/muse-connector-v')
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF#refs/tags/muse-connector-v}"
+          cp build/distributions/muse-connector.zip \
+            "build/distributions/muse-connector-${VERSION}.zip"
+
+      - name: Publish release (tags only)
+        if: startsWith(github.ref, 'refs/tags/muse-connector-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            muse-connector/build/distributions/muse-connector-*.zip
+            muse-connector/src/main/resources/META-INF/connector-descriptor.xml
