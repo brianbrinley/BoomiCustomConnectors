@@ -67,8 +67,6 @@ public class MuseBrowser extends BaseBrowser implements ConnectionTester {
             + "\"completionTokens\":{\"type\":\"integer\"},"
             + "\"totalTokens\":{\"type\":\"integer\"}"
             + "}"
-            + "},"
-            + "\"estimatedCostUsd\":{\"type\":\"string\"}"
             + "}"
             + "}"
             + "}"
@@ -116,7 +114,7 @@ public class MuseBrowser extends BaseBrowser implements ConnectionTester {
         types.add(new ObjectType().withId(REQUEST_TYPE_ID).withLabel("Chat Request")
                 .withHelpText("The JSON document sent to the Chat Completion operations."));
         types.add(new ObjectType().withId(RESPONSE_TYPE_ID).withLabel("Chat Response")
-                .withHelpText("The JSON document the connector returns, with usage and cost."));
+                .withHelpText("The JSON document the connector returns, with token usage."));
         types.add(new ObjectType().withId(MODEL_LIST_TYPE_ID).withLabel("Model List")
                 .withHelpText("The models your API key can reach, as returned by List Models."));
         return new ObjectTypes().withTypes(types).withTotalCount(types.size());

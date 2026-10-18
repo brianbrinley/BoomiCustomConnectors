@@ -1,6 +1,5 @@
 package com.boomi.connector.muse;
 
-import java.math.BigDecimal;
 import java.net.URI;
 
 import com.boomi.connector.api.PropertyMap;
@@ -24,9 +23,6 @@ public final class MuseConnection {
     private final long _retryBackoffMs;
     private final long _budgetMaxInputTokens;
     private final long _budgetMaxOutputTokens;
-    private final BigDecimal _budgetMaxCostUsd; // null = no limit
-    private final BigDecimal _pricePerMillionInputUsd;
-    private final BigDecimal _pricePerMillionOutputUsd;
     private final boolean _debugLogging;
 
     private MuseConnection(String baseUrl, String apiKey, String model,
@@ -34,8 +30,6 @@ public final class MuseConnection {
             int maxConnectionsTotal, int maxConnectionsPerRoute,
             int bulkMaxConcurrency, int maxRetries, long retryBackoffMs,
             long budgetMaxInputTokens, long budgetMaxOutputTokens,
-            BigDecimal budgetMaxCostUsd,
-            BigDecimal pricePerMillionInputUsd, BigDecimal pricePerMillionOutputUsd,
             boolean debugLogging) {
         _baseUrl = baseUrl;
         _apiKey = apiKey;
@@ -49,9 +43,6 @@ public final class MuseConnection {
         _retryBackoffMs = retryBackoffMs;
         _budgetMaxInputTokens = budgetMaxInputTokens;
         _budgetMaxOutputTokens = budgetMaxOutputTokens;
-        _budgetMaxCostUsd = budgetMaxCostUsd;
-        _pricePerMillionInputUsd = pricePerMillionInputUsd;
-        _pricePerMillionOutputUsd = pricePerMillionOutputUsd;
         _debugLogging = debugLogging;
     }
 
@@ -87,9 +78,6 @@ public final class MuseConnection {
                 Math.max(0L, getLong(props, "retryBackoffMs", 1000L)),
                 Math.max(0L, getLong(props, "budgetMaxInputTokens", 0L)),
                 Math.max(0L, getLong(props, "budgetMaxOutputTokens", 0L)),
-                getDecimal(props, "budgetMaxCostUsd", null),
-                getDecimal(props, "pricePerMillionInputUsd", new BigDecimal("4.00")),
-                getDecimal(props, "pricePerMillionOutputUsd", new BigDecimal("20.00")),
                 getBoolean(props, "debugLogging", false));
     }
 
@@ -126,18 +114,6 @@ public final class MuseConnection {
         }
         try {
             return Long.parseLong(value.trim());
-        } catch (NumberFormatException e) {
-            return fallback;
-        }
-    }
-
-    private static BigDecimal getDecimal(PropertyMap props, String key, BigDecimal fallback) {
-        String value = props.getProperty(key, "");
-        if (value == null || value.trim().isEmpty()) {
-            return fallback;
-        }
-        try {
-            return new BigDecimal(value.trim());
         } catch (NumberFormatException e) {
             return fallback;
         }
@@ -189,18 +165,6 @@ public final class MuseConnection {
 
     public long getBudgetMaxOutputTokens() {
         return _budgetMaxOutputTokens;
-    }
-
-    public BigDecimal getBudgetMaxCostUsd() {
-        return _budgetMaxCostUsd;
-    }
-
-    public BigDecimal getPricePerMillionInputUsd() {
-        return _pricePerMillionInputUsd;
-    }
-
-    public BigDecimal getPricePerMillionOutputUsd() {
-        return _pricePerMillionOutputUsd;
     }
 
     public boolean isDebugLogging() {

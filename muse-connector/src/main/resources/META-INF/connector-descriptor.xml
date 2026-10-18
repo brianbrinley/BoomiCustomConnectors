@@ -1,9 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <GenericConnectorDescriptor requireConnectionForBrowse="true">
-    <description>Send prompts to Muse models through the Meta Model API, with per-request usage and cost tracking. List Models shows which models your key can reach.</description>
+    <description>Send prompts to Muse models through the Meta Model API. Three operations: Chat Completion for one document at a time, Bulk Chat Completion for many in parallel, and List Models to see which models your API key can reach. Token budgets cap usage per execution, and every response reports its token usage.</description>
 
-    <section id="performance" sectionType="page" title="Performance"/>
-    <section id="budgets" sectionType="page" title="Budgets"/>
+    <section id="about" sectionType="page" title="About">
+        <helpText>What this connector does: it calls the Muse chat completions API. Chat Completion sends one document per call. Bulk Chat Completion sends many documents at once and keeps the results in document order. List Models shows which models your API key can reach. Every response reports its token usage, and the Budgets page caps tokens per execution. Documents live in memory only for the call; turn off debug logging on the Performance page if you do not want request and response bodies in the Atom logs.</helpText>
+    </section>
+    <section id="performance" sectionType="page" title="Performance">
+        <helpText>Tuning for high-volume flows. The HTTP connection pool is per Atom (per JVM): each connection component keeps its own pool and reuses connections across executions instead of reopening them.</helpText>
+    </section>
+    <section id="budgets" sectionType="page" title="Budgets">
+        <helpText>Token budgets apply per execution. Once an execution reaches a limit, the remaining documents are skipped with a BUDGET_EXCEEDED note instead of calling the API. Dry runs never count against budgets.</helpText>
+    </section>
 
     <field id="apiKey" label="API key" type="password">
         <helpText>Create one at dev.meta.ai, under API keys. It is stored encrypted and never written to logs.</helpText>
@@ -58,17 +65,6 @@
         <helpText>Same, for output tokens. 0 means no limit.</helpText>
         <defaultValue>0</defaultValue>
     </field>
-    <field id="budgetMaxCostUsd" label="Max cost (USD)" type="string" sectionId="budgets">
-        <helpText>Stop sending new requests once an execution's estimated cost passes this amount, for example 5.00. Blank means no limit.</helpText>
-    </field>
-    <field id="pricePerMillionInputUsd" label="Price per 1M input tokens (USD)" type="string" sectionId="budgets">
-        <helpText>Used only to estimate cost against the budget above. Check dev.meta.ai for current pricing.</helpText>
-        <defaultValue>4.00</defaultValue>
-    </field>
-    <field id="pricePerMillionOutputUsd" label="Price per 1M output tokens (USD)" type="string" sectionId="budgets">
-        <helpText>Same, for output tokens.</helpText>
-        <defaultValue>20.00</defaultValue>
-    </field>
 
     <testConnection method="CUSTOM"/>
 
@@ -101,7 +97,7 @@
                 <profileType>json</profileType>
             </inputProfile>
             <outputProfile label="Response profile" selectable="true">
-                <helpText>Shape of the JSON document the connector returns, including token usage and estimated cost.</helpText>
+                <helpText>Shape of the JSON document the connector returns, including token usage.</helpText>
                 <profileType>json</profileType>
             </outputProfile>
         </browseConfiguration>
@@ -136,7 +132,7 @@
                 <profileType>json</profileType>
             </inputProfile>
             <outputProfile label="Response profile" selectable="true">
-                <helpText>Shape of the JSON document returned per input, including token usage and estimated cost.</helpText>
+                <helpText>Shape of the JSON document returned per input, including token usage.</helpText>
                 <profileType>json</profileType>
             </outputProfile>
         </browseConfiguration>
@@ -175,8 +171,5 @@
     </trackedProperty>
     <trackedProperty id="museTotalTokens" label="Muse Total Tokens">
         <helpText>Prompt plus completion tokens for the document's call.</helpText>
-    </trackedProperty>
-    <trackedProperty id="museEstimatedCostUsd" label="Muse Estimated Cost (USD)">
-        <helpText>Estimated cost of the document's call, in USD.</helpText>
     </trackedProperty>
 </GenericConnectorDescriptor>

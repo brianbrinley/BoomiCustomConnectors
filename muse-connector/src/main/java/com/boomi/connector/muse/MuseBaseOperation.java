@@ -2,9 +2,7 @@ package com.boomi.connector.muse;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -136,7 +134,7 @@ abstract class MuseBaseOperation extends BaseUpdateOperation {
             try {
                 MuseClient.ChatResult result = MuseClient.chat(http, conn, body);
                 budget.record(result.promptTokens, result.completionTokens);
-                ObjectNode out = buildOutputDocument(result, conn);
+                ObjectNode out = buildOutputDocument(result);
                 return DocOutcome.success(out.toString(), trackedProperties(result, out));
             } catch (MuseApiException e) {
                 if (e.isAuthFailure()) {
@@ -243,7 +241,7 @@ abstract class MuseBaseOperation extends BaseUpdateOperation {
         return node;
     }
 
-    private ObjectNode buildOutputDocument(MuseClient.ChatResult result, MuseConnection conn) {
+    private ObjectNode buildOutputDocument(MuseClient.ChatResult result) {
         ObjectNode out = MuseClient.MAPPER.createObjectNode();
         out.put("id", result.id);
         out.put("model", result.model);
@@ -254,16 +252,14 @@ abstract class MuseBaseOperation extends BaseUpdateOperation {
         usage.put("completionTokens", result.completionTokens);
         usage.put("totalTokens", result.totalTokens());
         out.set("usage", usage);
-        out.put("estimatedCostUsd", estimatedCost(result, conn)
-                .setScale(6, RoundingMode.HALF_UP).toPlainString());
         return out;
     }
 
     /**
      * Document properties for the process to read downstream: response id,
-     * model, finish reason, token counts, and estimated cost. Values are
-     * never null — a missing value becomes an empty string — because the
-     * metadata setter does not accept nulls.
+     * model, finish reason, and token counts. Values are never null — a
+     * missing value becomes an empty string — because the metadata setter
+     * does not accept nulls.
      */
     private static Map<String, String> trackedProperties(MuseClient.ChatResult result, ObjectNode out) {
         Map<String, String> props = new LinkedHashMap<>();
@@ -273,23 +269,11 @@ abstract class MuseBaseOperation extends BaseUpdateOperation {
         props.put("musePromptTokens", String.valueOf(result.promptTokens));
         props.put("museCompletionTokens", String.valueOf(result.completionTokens));
         props.put("museTotalTokens", String.valueOf(result.totalTokens()));
-        props.put("museEstimatedCostUsd", out.path("estimatedCostUsd").asText(""));
         return props;
     }
 
     private static String nn(String s) {
         return s == null ? "" : s;
-    }
-
-    private BigDecimal estimatedCost(MuseClient.ChatResult result, MuseConnection conn) {
-        BigDecimal million = new BigDecimal(1_000_000);
-        BigDecimal in = new BigDecimal(result.promptTokens)
-                .multiply(conn.getPricePerMillionInputUsd())
-                .divide(million, 6, RoundingMode.HALF_UP);
-        BigDecimal out = new BigDecimal(result.completionTokens)
-                .multiply(conn.getPricePerMillionOutputUsd())
-                .divide(million, 6, RoundingMode.HALF_UP);
-        return in.add(out);
     }
 
     /**

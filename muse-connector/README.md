@@ -7,7 +7,7 @@
 
 **Docs site:** [Muse Connector](https://brianbrinley.github.io/BoomiCustomConnectors/muse-connector/), with the latest connector download.
 
-A native Boomi connector for the Muse API (Meta Model API). Send prompts from a Boomi process and get completions back as documents, with token usage and estimated cost attached to every response.
+A native Boomi connector for the Muse API (Meta Model API). Send prompts from a Boomi process and get completions back as documents, with token usage attached to every response.
 
 This exists because the generic HTTP connector makes you hand-roll everything: auth headers, retries, response parsing, per-document error handling, and usage accounting. This connector does that once, properly, and gives you a real connection screen instead of a pile of headers.
 
@@ -17,10 +17,10 @@ flowchart LR
     P["Prompt document<br/>JSON"] --> M["Muse connector<br/>Chat Completion"]
     M -->|"/v1/chat/completions<br/>Bearer key"| API[("Meta Model API<br/>api.meta.ai")]
     API -->|"completion + usage"| M
-    M --> R["Response document<br/>content, usage, cost"]
+    M --> R["Response document<br/>content, usage, tokens"]
     R --> D{"Route on it"}
     D -->|profile| MAP["Map content<br/>into your target"]
-    D -->|properties| PROP["Branch on<br/>tokens / cost / model"]
+    D -->|properties| PROP["Branch on<br/>tokens / model"]
     class M focus
     class API external
     class D decision
@@ -87,6 +87,8 @@ Upload the zip as a new connector version (connector group → version upload �
 
 ## Connection fields
 
+The connection opens on an **About** page with a short tour of the connector, then the main fields:
+
 **Main page**
 
 | Field | What it does |
@@ -116,9 +118,6 @@ Budgets are per execution, not per day. When one trips, the remaining documents 
 |---|---|---|
 | Max input tokens | 0 (no limit) | Stop starting new requests after this many input tokens. |
 | Max output tokens | 0 (no limit) | Same, for output tokens. |
-| Max cost (USD) | blank (no limit) | Stop starting new requests past this estimated spend, e.g. `5.00`. |
-| Price per 1M input tokens (USD) | 4.00 | Only used to estimate cost. Check dev.meta.ai for current pricing. |
-| Price per 1M output tokens (USD) | 20.00 | Same, for output tokens. |
 
 Under bulk concurrency a few requests can be in flight when a budget trips, so think of budgets as guardrails: no *new* request starts past the limit, but an execution can overshoot by a small margin.
 
@@ -170,8 +169,7 @@ The output document, one per input:
     "promptTokens": 42,
     "completionTokens": 118,
     "totalTokens": 160
-  },
-  "estimatedCostUsd": "0.002528"
+  }
 }
 ```
 
@@ -189,7 +187,7 @@ flowchart TD
     MC --> OK["Response documents"]
     OK --> USE{"Use the result"}
     USE -->|map| A["Option A: response profile<br/>map content and usage"]
-    USE -->|branch| B["Option B: document properties<br/>route on tokens, cost, model"]
+    USE -->|branch| B["Option B: document properties<br/>route on tokens, model"]
     USE -->|report| C["Option C: tracked properties<br/>Process Reporting"]
     class MC focus
     class USE decision
@@ -208,7 +206,7 @@ On the operation, click **Import**. You get a JSON profile with `content`, `fini
 
 | Shape | Setting |
 |---|---|
-| **Map** | Map `content` into your target system's profile; map `usage/totalTokens` alongside it for cost tracking |
+| **Map** | Map `content` into your target system's profile; map `usage/totalTokens` alongside it for usage tracking |
 | **Decision** | `finishReason` Equal To `length` → the response was cut off; retry with a higher Max tokens |
 | **Set Properties** | Stash `id` as a correlation id for the rest of the process |
 
@@ -222,9 +220,8 @@ Every output document carries these as document properties — read them with **
 | `museModel` | `muse-spark-1.3` |
 | `museFinishReason` | `stop` (`length` means it hit the token cap) |
 | `musePromptTokens` / `museCompletionTokens` / `museTotalTokens` | `42` / `118` / `160` |
-| `museEstimatedCostUsd` | `0.002528` |
 
-Handy when you want to branch without a map: a Decision shape can route on `museTotalTokens` Greater Than `4000`, or kill an expensive loop when `museEstimatedCostUsd` climbs.
+Handy when you want to branch without a map: a Decision shape can route on `museTotalTokens` Greater Than `4000`.
 
 ### Option C: tracked properties (Process Reporting)
 
@@ -236,11 +233,10 @@ The same values are declared as **tracked properties**, so they're visible and s
 | Muse Model | `muse-spark-1.3` |
 | Muse Finish Reason | `stop` |
 | Muse Prompt / Completion / Total Tokens | `42` / `118` / `160` |
-| Muse Estimated Cost (USD) | `0.002528` |
 
 ## Budgets
 
-See [Connection fields](#connection-fields) — budgets are per execution. One more pattern worth knowing: put a cheap model on the connection for bulk classification work and override the model per document for the few that need the strong one. The `museEstimatedCostUsd` property makes the spend visible per document either way.
+See [Connection fields](#connection-fields) — budgets are per execution. One more pattern worth knowing: put a cheap model on the connection for bulk classification work and override the model per document for the few that need the strong one.
 
 ## Pooling, honestly
 

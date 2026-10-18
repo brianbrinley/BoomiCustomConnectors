@@ -488,13 +488,15 @@ public class MuseConnectorTest {
 
     static void testBudgetMath() {
         Map<String, String> m = connProps();
-        m.put("budgetMaxCostUsd", "20.00");
+        m.put("budgetMaxInputTokens", "1000");
+        m.put("budgetMaxOutputTokens", "500");
         BudgetTracker t = new BudgetTracker(MuseConnection.from(props(m)));
         check(t.blockReason() == null, "budget starts clear");
-        t.record(1_000_000L, 1_000_000L); // 4.00 + 20.00 = 24.00
+        t.record(1000L, 100L);
         String reason = t.blockReason();
-        check(reason != null && reason.contains("cost"), "budget trips on cost (" + reason + ")");
-        check(t.summary().contains("1000000 input tokens"),
+        check(reason != null && reason.contains("input token"),
+                "budget trips on input tokens (" + reason + ")");
+        check(t.summary().contains("1000 input tokens"),
                 "summary reports tokens (" + t.summary() + ")");
     }
 
@@ -503,8 +505,7 @@ public class MuseConnectorTest {
         MuseConnection c = MuseConnection.from(props(m));
         check(c.getBaseUrl().equals("https://api.meta.ai/v1")
                 && c.getConnectTimeoutMs() == 10000
-                && c.getBulkMaxConcurrency() == 8
-                && c.getBudgetMaxCostUsd() == null,
+                && c.getBulkMaxConcurrency() == 8,
                 "connection defaults apply");
 
         Map<String, String> badKey = connProps();
@@ -542,7 +543,7 @@ public class MuseConnectorTest {
         check(rr.results.stream().allMatch(r -> r.status == OperationStatus.SUCCESS), "both succeed");
         String p0 = rr.results.get(0).payload;
         check(p0.contains("\"content\":\"hello\"") && p0.contains("\"promptTokens\":10")
-                && p0.contains("estimatedCostUsd"), "output carries content, usage, cost");
+                && !p0.contains("estimatedCostUsd"), "output carries content and usage, no cost");
         check(hz.http.requests.get(0).body.contains("\"temperature\":0.5"),
                 "doc temperature reaches the API");
         check(hz.http.requests.get(1).body.contains("\"messages\":[{\"role\":\"user\",\"content\":\"yo\"}]"),
@@ -729,8 +730,7 @@ public class MuseConnectorTest {
         check("10".equals(t.get("musePromptTokens"))
                 && "20".equals(t.get("museCompletionTokens"))
                 && "30".equals(t.get("museTotalTokens")), "tracked: token counts");
-        check(t.get("museEstimatedCostUsd") != null && !t.get("museEstimatedCostUsd").isEmpty(),
-                "tracked: estimated cost (" + t.get("museEstimatedCostUsd") + ")");
+        check(t.get("museEstimatedCostUsd") == null, "tracked: no cost property");
     }
 
     static void testDebugLogging() throws Exception {
